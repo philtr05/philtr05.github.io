@@ -3,12 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GO Train Connection Maker</title>
+  <title>GO Train Connection Chart Maker</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
+      font-family: sans-serif;
       background: #f5f5f5;
+      padding: 0px;
+    }
+  .navbar {
+      background-color: #333;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      margin-top: -8px;
+      margin-bottom: 10px ;
+      margin-left: -8px;
+      margin-right: -8px;
+    }
+
+    .navbar a {
+      color: white;
+      padding: 14px 20px;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+      transition: background 0.3s;
+    }
+
+    .navbar a:hover {
+      background-color: #575757;
+    }
+
+    .navbar a.active {
+      background-color: #04AA6D;
     }
     h2 {
       margin-top: 40px;
@@ -46,9 +73,12 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-
-<h1>Transit Connection Grids</h1>
-<p>Upload CSV with columns: <b>Train number, stop, route, depart, arrive</b>.</p>
+<div class="navbar">
+    <a href="Bus visualizer 2.0.html">Platforming</a>
+    <a href="GO Train maker.html">GO Train Chart</a>
+  </div>
+<h1>GO Train Connection Chart Maker</h1>
+<p>Upload a CSV file with columns: <b>Train number, stop, route, depart, arrive</b>.</p>
 <input type="file" id="csvFile" accept=".csv,text/csv" />
 <button id="downloadBtn" style="display:none;">Download XLSX</button>
 <div id="error" style="color:red; margin-top:10px;"></div>
