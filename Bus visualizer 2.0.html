@@ -3,12 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bus Platform Visualizer with Conflict Highlight</title>
+  <title>Transit Toolkit</title>
   <style>
     body {
       font-family: sans-serif;
       background: #f5f5f5;
-      padding: 20px;
+      padding: 0px;
+    }
+      .navbar {
+      background-color: #333;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      margin-top: -8px;
+      margin-bottom: 10px ;
+      margin-left: -8px;
+      margin-right: -8px;
+    }
+
+    .navbar a {
+      color: white;
+      padding: 14px 20px;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+      transition: background 0.3s;
+    }
+
+    .navbar a:hover {
+      background-color: #575757;
+    }
+
+    .navbar a.active {
+      background-color: #04AA6D;
     }
     .container {
       background: white;
@@ -121,8 +148,13 @@
   </style>
 </head>
 <body>
+
+  <div class="navbar">
+    <a href="Bus visualizer 2.0.html">Platforming</a>
+    <a href="GO Train maker.html">GO Train Chart</a>
+  </div>
   <div class="container">
-    <h1>Bus Platform Visualizer with Conflict Highlight</h1>
+    <h1>Bus Platform Conflict Visualizer</h1>
 
     <label for="fileInput">Upload CSV File:</label>
     <input type="file" id="fileInput" accept=".csv" />
@@ -143,7 +175,7 @@
     </div>
 
     <div id="colorPickers" style="margin-top: 20px;">
-      <h3>Route Colors & Visibility</h3>
+      <h3>Select Routes</h3>
     </div>
   </div>
 
