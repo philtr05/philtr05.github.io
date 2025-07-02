@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GO Train Connection Maker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h2 {
+      margin-top: 40px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 30px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #ddd;
+    }
+    .yellow {
+      background-color: yellow;
+      color: black;
+    }
+    .green {
+      background-color: green;
+      color: white;
+    }
+    .blue {
+      background-color: blue;
+      color: white;
+    }
+    #downloadBtn {
+      margin-top: 20px;
+    }
+  </style>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<h1>Transit Connection Grids</h1>
+<p>Upload CSV with columns: <b>Train number, stop, route, depart, arrive</b>.</p>
+<input type="file" id="csvFile" accept=".csv,text/csv" />
+<button id="downloadBtn" style="display:none;">Download XLSX</button>
+<div id="error" style="color:red; margin-top:10px;"></div>
+<div id="grids"></div>
+
+<script>
+let allSheetData = {};  // Store data per sheet title
+
+function timeToMinutes(t) {
+  t = t.trim();
+  const ampmMatch = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1], 10);
+    const m = parseInt(ampmMatch[2], 10);
+    const ampm = ampmMatch[3].toUpperCase();
+    if (ampm === 'PM' && h !== 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const match24 = t.match(/(\d{1,2}):(\d{2})/);
+  if (match24) {
+    const h = parseInt(match24[1], 10);
+    const m = parseInt(match24[2], 10);
+    return h * 60 + m;
+  }
+  return null;
+}
+
+function colorCode(diff) {
+  if (diff > 30) return '';
+  if (diff >= 15) return 'blue';
+  if (diff >= 5) return 'green';
+  if (diff >= 1) return 'yellow';
+  return '';
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  let firstLine = lines[0];
+  if (firstLine.charCodeAt(0) === 0xFEFF) firstLine = firstLine.slice(1);
+  const headers = firstLine.split(',').map(h => h.trim());
+  const headerMap = {};
+  headers.forEach((h, i) => headerMap[h.toLowerCase()] = i);
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = lines[i].split(',');
+    const obj = {};
+    ['train number', 'stop', 'route', 'depart', 'arrive'].forEach(field => {
+      const idx = headerMap[field];
+      obj[field] = idx !== undefined ? (cols[idx] || '').trim() : '';
+    });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function createGrid(title, trains, buses, isDeparture) {
+  const gridDiv = document.getElementById('grids');
+  const busRoutes = [...new Set(buses.map(b => b.route))].sort();
+  const sortedTrains = [...trains].sort((a, b) => timeToMinutes((isDeparture ? a.depart : a.arrive)) - timeToMinutes((isDeparture ? b.depart : b.arrive)));
+
+  const trainNums = sortedTrains.map(t => t['train number']);
+  const timeRow = sortedTrains.map(t => isDeparture ? t.depart : t.arrive);
+
+  const table = document.createElement('table');
+  const titleEl = document.createElement('h2');
+  titleEl.textContent = title;
+  gridDiv.appendChild(titleEl);
+
+  const thead = document.createElement('thead');
+  const row1 = document.createElement('tr');
+  row1.appendChild(document.createElement('th')).textContent = 'Bus Route';
+  row1.appendChild(document.createElement('th')).textContent = 'Train';
+  trainNums.forEach(num => {
+    const th = document.createElement('th');
+    th.textContent = num;
+    row1.appendChild(th);
+  });
+  thead.appendChild(row1);
+
+  const row2 = document.createElement('tr');
+  row2.appendChild(document.createElement('td'));
+  row2.appendChild(document.createElement('td')).textContent = 'Depart:';
+  timeRow.forEach(time => {
+    const td = document.createElement('td');
+    td.textContent = time;
+    row2.appendChild(td);
+  });
+  thead.appendChild(row2);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const exportData = [];
+
+  busRoutes.forEach(route => {
+    const rowObj = { 'Bus Route': route };
+    const tr = document.createElement('tr');
+    const routeCell = document.createElement('td');
+    routeCell.textContent = route;
+    tr.appendChild(routeCell);
+    tr.appendChild(document.createElement('td'));
+
+    let hasConnection = false;
+
+    trainNums.forEach((trainNum, i) => {
+      const t = sortedTrains[i];
+      const busMatches = buses.filter(b => b.route === route && b.stop === t.stop);
+      let highlight = '';
+      let busTimeText = '';
+      busMatches.forEach(bus => {
+        const busTime = isDeparture ? timeToMinutes(bus.arrive) : timeToMinutes(bus.depart);
+        const trainTime = timeToMinutes(isDeparture ? t.depart : t.arrive);
+        const rawBusTime = isDeparture ? bus.arrive : bus.depart;
+        if (busTime !== null && trainTime !== null) {
+          const diff = isDeparture ? (trainTime - busTime) : (busTime - trainTime);
+          const cc = colorCode(diff);
+          if (cc && (!highlight || ['yellow', 'green', 'blue'].indexOf(cc) > ['yellow', 'green', 'blue'].indexOf(highlight))) {
+            highlight = cc;
+            busTimeText = rawBusTime;
+          }
+        }
+      });
+      const td = document.createElement('td');
+      td.textContent = busTimeText;
+      if (highlight) td.className = highlight;
+      tr.appendChild(td);
+      rowObj[trainNum] = busTimeText;
+      if (busTimeText) hasConnection = true;
+    });
+
+    if (hasConnection) {
+      tbody.appendChild(tr);
+      exportData.push(rowObj);
+    }
+  });
+
+  table.appendChild(tbody);
+  gridDiv.appendChild(table);
+  allSheetData[title] = exportData.length ? { headers: trainNums, data: exportData } : null;
+}
+
+function parseExcelTime(t) {
+  const match = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  return (hours * 60 + minutes) / (24 * 60);
+}
+
+function exportToXLSX(allSheets) {
+  const wb = XLSX.utils.book_new();
+  for (const [sheetName, sheet] of Object.entries(allSheets)) {
+    if (!sheet) continue;
+    const { headers, data } = sheet;
+    const wsData = [];
+    const fullHeaders = ['Bus Route', ...headers];
+    wsData.push(fullHeaders);
+    data.forEach(row => {
+      const values = fullHeaders.map(h => row[h] || '');
+      wsData.push(values);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    for (let R = 1; R < wsData.length; R++) {
+      for (let C = 1; C < fullHeaders.length; C++) {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        const cellVal = ws[cellRef] && ws[cellRef].v;
+        if (typeof cellVal === 'string' && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(cellVal)) {
+          const timeNum = parseExcelTime(cellVal);
+          if (timeNum !== null) {
+            ws[cellRef].v = timeNum;
+            ws[cellRef].t = 'n';
+            ws[cellRef].z = 'h:mm AM/PM';
+          }
+        }
+      }
+    }
+
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  }
+  XLSX.writeFile(wb, "transit_connections.xlsx");
+}
+
+document.getElementById('csvFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  document.getElementById('error').textContent = '';
+  document.getElementById('grids').innerHTML = '';
+  document.getElementById('downloadBtn').style.display = 'none';
+  allSheetData = {};
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const data = parseCSV(evt.target.result);
+      const goRoutes = data.filter(r => r.route === 'GO Train North' || r.route === 'GO Train South');
+      const buses = data.filter(r => r.route !== 'GO Train North' && r.route !== 'GO Train South');
+      createGrid('GO Train Depart - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.depart), buses, true);
+      createGrid('GO Train Depart - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.depart), buses, true);
+      createGrid('GO Train Arrive - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.arrive), buses, false);
+      createGrid('GO Train Arrive - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.arrive), buses, false);
+      document.getElementById('downloadBtn').style.display = 'inline-block';
+      document.getElementById('downloadBtn').onclick = () => exportToXLSX(allSheetData);
+    } catch (err) {
+      document.getElementById('error').textContent = err.message;
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>

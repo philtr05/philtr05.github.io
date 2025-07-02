@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bus Platform Visualizer with Conflict Highlight</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 1200px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, select, input {
+      margin-top: 10px;
+      display: block;
+    }
+    #chartContainer {
+      width: 100%;
+      max-width: 1200px;
+      border: 1px solid #ccc;
+      background: #f0f0f0;
+      margin-top: 20px;
+      overflow-x: auto;
+      white-space: nowrap;
+      position: relative;
+      height: 400px;
+    }
+    #chart {
+      position: relative;
+      height: 100%;
+      padding-top: 40px;
+      white-space: nowrap;
+      width: 1440px;
+    }
+    .bar {
+      position: absolute;
+      height: 20px;
+      color: white;
+      font-size: 11px;
+      text-align: center;
+      line-height: 20px;
+      border-radius: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 10;
+    }
+    .conflict-highlight {
+      position: absolute;
+      background-color: rgba(255, 0, 0, 0.15);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .time-labels {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 40px;
+      border-bottom: 1px solid #ccc;
+      font-size: 10px;
+      color: #333;
+      white-space: nowrap;
+      z-index: 20;
+      user-select: none;
+      width: 1440px;
+    }
+    .time-label {
+      position: absolute;
+      top: 0;
+      transform: translateX(-15px);
+      user-select: none;
+    }
+    .grid-line {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 1px;
+      background: rgba(0, 0, 0, 0.1);
+      z-index: 5;
+    }
+    #tooltip {
+      position: absolute;
+      background: #333;
+      color: #fff;
+      font-size: 10px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+    }
+    #colorPickers label {
+      display: inline-block;
+      margin-right: 15px;
+      margin-top: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    #colorPickers input[type="checkbox"] {
+      margin-right: 5px;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    #colorPickers .color-box {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      vertical-align: middle;
+      margin-right: 5px;
+      border-radius: 3px;
+      border: 1px solid #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bus Platform Visualizer with Conflict Highlight</h1>
+
+    <label for="fileInput">Upload CSV File:</label>
+    <input type="file" id="fileInput" accept=".csv" />
+
+    <label for="stopSelect">Select Stop:</label>
+    <select id="stopSelect"></select>
+
+    <label for="threshold">Max Buses on Platform: <span id="thresholdValue">5</span></label>
+    <input type="range" id="threshold" min="0" max="10" value="5" />
+
+    <label for="scaleSlider">Scale (px/min): <span id="scaleValue">1</span></label>
+    <input type="range" id="scaleSlider" min="10" max="300" value="10" />
+
+    <div id="chartContainer">
+      <div id="chart">
+        <div class="time-labels" id="timeLabels"></div>
+      </div>
+    </div>
+
+    <div id="colorPickers" style="margin-top: 20px;">
+      <h3>Route Colors & Visibility</h3>
+    </div>
+  </div>
+
+  <div id="tooltip"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script>
+    const defaultColors = {
+      '12A': '#F2CEEF', '12B': '#F2CEEF',
+      '7A': '#E88348', '7B': '#E88348',
+      '8A-NB': '#000000', '8A-SB': '#000000',
+      '8B-NB': '#000000', '8B-SB': '#000000',
+      '400': '#83CCEB',
+      '2A': '#24754F', '2B': '#24754F',
+      '10': '#6E2765', '11': '#B2D05F',
+      '100': '#911926', '101': '#3973A6'
+    };
+
+    const chartContainer = document.getElementById("chartContainer");
+    const chart = document.getElementById("chart");
+    const scaleSlider = document.getElementById("scaleSlider");
+    const scaleValue = document.getElementById("scaleValue");
+    const stopSelect = document.getElementById("stopSelect");
+    const colorPickerContainer = document.getElementById("colorPickers");
+    const thresholdSlider = document.getElementById("threshold");
+    const thresholdValue = document.getElementById("thresholdValue");
+    let rawData = [];
+
+    // Parse time string like "5:23 AM" or "12:45 PM" to minutes since midnight
+    function parseTime(str) {
+      if (!str) return null;
+      const [time, modifier] = str.trim().split(" ");
+      let [h, m] = time.split(":").map(Number);
+      if (modifier?.toLowerCase() === "pm" && h < 12) h += 12;
+      if (modifier?.toLowerCase() === "am" && h === 12) h = 0;
+      return h * 60 + m;
+    }
+
+    // Adjust minutes offset by -3 hours and wrap around 1440 mins
+    function adjustTimeOffset(mins) {
+      return (mins + 1440 - 180) % 1440;
+    }
+
+    // Format minutes as AM/PM string e.g. "5:23 AM"
+    function formatTime(min) {
+      const h = Math.floor(min / 60) % 24;
+      const m = min % 60;
+      const ampm = h >= 12 ? "PM" : "AM";
+      const hr = h % 12 === 0 ? 12 : h % 12;
+      return `${hr}:${m.toString().padStart(2, '0')} ${ampm}`;
+    }
+
+    // Draw time labels and grid lines
+    function drawTimeLabels(scaleX) {
+      const container = document.getElementById("timeLabels");
+      container.innerHTML = "";
+      container.style.width = (1440 * scaleX) + "px";
+
+      const showQuarterHours = scaleX >= 4;
+      const interval = showQuarterHours ? 15 : 60;
+
+      for (let i = 0; i <= 1440; i += interval) {
+        const labelTime = (i + 180) % 1440;
+        const label = document.createElement("div");
+        label.className = "time-label";
+        label.style.left = (i * scaleX) + "px";
+        label.style.width = (interval * scaleX) + "px";
+        if (i % 60 === 0 || !showQuarterHours) {
+          label.textContent = formatTime(labelTime);
+        }
+        container.appendChild(label);
+
+        const grid = document.createElement("div");
+        grid.className = "grid-line";
+        grid.style.left = (i * scaleX) + "px";
+        grid.style.height = chartContainer.clientHeight + "px"; // full container height
+        chart.appendChild(grid);
+      }
+
+      chart.onmousemove = (e) => {
+        const tooltip = document.getElementById("tooltip");
+        const bounds = chart.getBoundingClientRect();
+        const x = e.clientX - bounds.left;
+        const minute = Math.floor(x / scaleX);
+        const time = formatTime((minute + 180) % 1440);
+        tooltip.textContent = time;
+        tooltip.style.left = `${e.pageX + 10}px`;
+        tooltip.style.top = `${e.pageY - 20}px`;
+        tooltip.style.display = "block";
+      };
+
+      chart.onmouseleave = () => {
+        document.getElementById("tooltip").style.display = "none";
+      };
+    }
+
+    // Build color pickers with toggles and color squares
+    function buildColorPickers(routes, colors, visibleMap) {
+      colorPickerContainer.innerHTML = `<h3>Route Colors & Visibility</h3>`;
+      routes.forEach(route => {
+        const label = document.createElement("label");
+        label.htmlFor = `toggle-${route}`;
+        
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `toggle-${route}`;
+        checkbox.checked = visibleMap[route] !== false; // default visible
+        checkbox.dataset.route = route;
+        checkbox.addEventListener("change", updateChart);
+        
+        const colorBox = document.createElement("span");
+        colorBox.className = "color-box";
+        colorBox.style.backgroundColor = colors[route] || "#4682B4";
+        
+        const text = document.createTextNode(route);
+        
+        label.appendChild(checkbox);
+        label.appendChild(colorBox);
+        label.appendChild(text);
+        colorPickerContainer.appendChild(label);
+      });
+    }
+
+    // Get route colors from color pickers
+    function getRouteColors() {
+      const pickers = colorPickerContainer.querySelectorAll(".color-box");
+      const colorMap = {};
+      pickers.forEach(box => {
+        const route = box.nextSibling.textContent;
+        colorMap[route] = box.style.backgroundColor;
+      });
+      // Actually, color pickers are no longer editable inputs, so use defaultColors instead
+      // We'll store colors in a map from checkboxes instead.
+      // To allow color changes, you'd need separate inputs.
+      return colorMap;
+    }
+
+    // Get route colors from color pickers (input color inputs were removed for toggle UI, so use defaultColors)
+    function getRouteColorsFromToggles(routes) {
+      const colorMap = {};
+      routes.forEach(route => {
+        colorMap[route] = defaultColors[route] || "#4682B4";
+      });
+      return colorMap;
+    }
+
+    // Get routes visibility from toggles
+    function getVisibleRoutes() {
+      const checkboxes = colorPickerContainer.querySelectorAll("input[type=checkbox]");
+      const visibleMap = {};
+      checkboxes.forEach(cb => {
+        visibleMap[cb.dataset.route] = cb.checked;
+      });
+      return visibleMap;
+    }
+
+    // Main chart update function
+    function updateChart() {
+      const stop = stopSelect.value;
+      if (!stop) return;
+
+      // --- BEGIN ZOOM CENTERING FIX ---
+      const prevScaleX = parseFloat(scaleValue.textContent);
+      const prevWidth = 1440 * prevScaleX;
+      const scrollCenter = chartContainer.scrollLeft + chartContainer.clientWidth / 2;
+      const centerRatio = scrollCenter / prevWidth;
+      // --- END ZOOM CENTERING FIX ---
+
+      const scaleX = parseInt(scaleSlider.value) / 10;
+      scaleValue.textContent = scaleX;
+      const threshold = parseInt(thresholdSlider.value);
+      thresholdValue.textContent = threshold;
+
+      const data = rawData.filter(row => row.Stop === stop);
+      const routes = [...new Set(data.map(d => d.Route))];
+      const visibleMap = getVisibleRoutes();
+
+      // Filter routes based on visibility
+      const filteredRoutes = routes.filter(r => visibleMap[r] !== false);
+
+      // Colors for filtered routes
+      const routeColors = getRouteColorsFromToggles(filteredRoutes);
+
+      buildColorPickers(routes, getRouteColorsFromToggles(routes), visibleMap);
+
+      chart.style.width = (1440 * scaleX) + "px";
+      chart.innerHTML = '<div class="time-labels" id="timeLabels"></div>';
+      drawTimeLabels(scaleX);
+
+      const rowHeight = 30;
+      const counts = new Array(1440).fill(0);
+
+      // Count buses on platform per minute only for visible routes
+      data.forEach(bus => {
+        if (!visibleMap[bus.Route]) return;
+        let arr = parseTime(bus.Arrival);
+        let dep = parseTime(bus.Departure);
+        if (!arr && dep) arr = dep - 1;
+        if (!dep && arr) dep = arr + 1;
+        if (arr === null || dep === null) return;
+        if (dep <= arr) dep = arr + 1;
+        for (let i = arr; i < dep; i++) {
+          counts[adjustTimeOffset(i)]++;
+        }
+      });
+
+      let conflictIntervals = [];
+      let inConflict = false;
+      let conflictStart = 0;
+      for (let i = 0; i <= 1440; i++) {
+        const count = counts[i % 1440];
+        if (count > threshold) {
+          if (!inConflict) {
+            conflictStart = i;
+            inConflict = true;
+          }
+        } else {
+          if (inConflict) {
+            conflictIntervals.push([conflictStart, i - 1]);
+            inConflict = false;
+          }
+        }
+      }
+      if (inConflict) {
+        conflictIntervals.push([conflictStart, 1440 - 1]);
+      }
+
+      conflictIntervals.forEach(interval => {
+        const [start, end] = interval;
+        const left = start * scaleX;
+        const width = (end - start + 1) * scaleX;
+        const highlight = document.createElement("div");
+        highlight.className = "conflict-highlight";
+        highlight.style.left = left + "px";
+        highlight.style.width = width + "px";
+        highlight.style.top = "0";
+        highlight.style.height = chartContainer.clientHeight + "px";
+        chart.appendChild(highlight);
+      });
+
+      // Draw bars only for visible routes, preserve route order as filteredRoutes
+      filteredRoutes.forEach((route, i) => {
+        data.filter(d => d.Route === route).forEach(bus => {
+          let arr = parseTime(bus.Arrival);
+          let dep = parseTime(bus.Departure);
+          if (!arr && dep) arr = dep - 1;
+          if (!dep && arr) dep = arr + 1;
+          if (arr === null || dep === null) return;
+          const duration = Math.max(1, dep - arr);
+          const shiftArr = adjustTimeOffset(arr);
+          const div = document.createElement("div");
+          div.className = "bar";
+          div.style.top = (i * rowHeight + 50) + "px";
+          div.style.left = (shiftArr * scaleX) + "px";
+          div.style.width = (duration * scaleX) + "px";
+          div.style.backgroundColor = routeColors[route];
+          div.textContent = route;
+          chart.appendChild(div);
+        });
+      });
+
+      chart.style.height = (filteredRoutes.length * rowHeight + 70) + "px";
+
+      // --- BEGIN ZOOM CENTERING FIX ---
+      const newWidth = 1440 * scaleX;
+      const newScrollCenter = centerRatio * newWidth;
+      const targetScrollLeft = newScrollCenter - chartContainer.clientWidth / 2;
+      const maxScrollLeft = chartContainer.scrollWidth - chartContainer.clientWidth;
+      const clampedScrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);
+      requestAnimationFrame(() => {
+        chartContainer.scrollLeft = clampedScrollLeft;
+      });
+      // --- END ZOOM CENTERING FIX ---
+    }
+
+    function initializeDefault() {
+      const defaultRoutes = Object.keys(defaultColors);
+      rawData = [];
+      stopSelect.innerHTML = "";
+      stopSelect.innerHTML = '<option value="defaultStop">Default Stop</option>';
+      stopSelect.value = "defaultStop";
+      // Initially all visible
+      const visibleMap = {};
+      defaultRoutes.forEach(r => visibleMap[r] = true);
+      buildColorPickers(defaultRoutes, defaultColors, visibleMap);
+      updateChart();
+    }
+
+    document.getElementById("fileInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(result) {
+          rawData = result.data.map(row => {
+            const cleaned = {};
+            for (let key in row) cleaned[key.trim()] = row[key].trim();
+            return cleaned;
+          });
+          const stops = [...new Set(rawData.map(r => r.Stop))].sort();
+          stopSelect.innerHTML = '';
+          stops.forEach(stop => {
+            const opt = document.createElement("option");
+            opt.value = stop;
+            opt.textContent = stop;
+            stopSelect.appendChild(opt);
+          });
+          if (stops.length > 0) stopSelect.value = stops[0];
+          updateChart();
+        }
+      });
+    });
+
+    stopSelect.addEventListener("change", updateChart);
+    scaleSlider.addEventListener("input", updateChart);
+    thresholdSlider.addEventListener("input", updateChart);
+
+    initializeDefault();
+  </script>
+  <center><p>Created by Philippe Tremblay / AI</p></center>
+</body>
+</html>
