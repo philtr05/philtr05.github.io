@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parking Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section.dragover {
+            border-color: #2196F3;
+            background-color: #f0f8ff;
+        }
+        #fileInput {
+            margin: 10px 0;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filter-group h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+        .toggle-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 20px;
+        }
+        .stats {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .data-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parking Analysis Tool</h1>
+        <p>Created by Philippe Tremblay / AI</p>
+        <div class="upload-section" id="uploadSection">
+            <h3>Upload CSV File</h3>
+            <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
+            <p>Example: 2024-01-15, 09:30, 2.5, 1, LotA</p>
+            <input type="file" id="fileInput" accept=".csv" />
+            <p><small>Or drag and drop a CSV file here</small></p>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <div class="filter-group">
+                <h4>Lot</h4>
+                <select id="hotspotFilter" onchange="applyFilters()">
+                    <option value="all">All Hotspots</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <h4>Months</h4>
+                <button onclick="toggleAllMonths()">Toggle All</button>
+                <div class="checkbox-group" id="monthFilters"></div>
+            </div>
+            
+            <div class="filter-group">
+                <h4>Days of Week</h4>
+                <button onclick="toggleAllDays()">Toggle All</button>
+                <div class="checkbox-group" id="dayFilters"></div>
+            </div>
+
+            <div class="filter-group">
+                <h4>Day Type</h4>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
+                        <label for="weekdayToggle">Weekdays</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
+                        <label for="weekendToggle">Weekends</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toggle-section">
+                <div class="toggle">
+                    <input type="checkbox" id="showGaussian" checked onchange="toggleGaussian()">
+                    <label for="showGaussian">Show Normal Distribution</label>
+                </div>
+                <div class="toggle">
+                    <input type="checkbox" id="showData" checked onchange="toggleData()">
+                    <label for="showData">Show Raw Data</label>
+                </div>
+                <div class="toggle">
+                    <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
+                    <label for="estimateTrue">Estimate True Value (x4)</label>
+                </div>
+                <button onclick="applyFilters()">Apply Filters</button>
+            </div>
+        </div>
+
+        <div class="data-info" id="dataInfo" style="display: none;"></div>
+
+        <div class="chart-container" style="display: none;" id="chartContainer">
+            <canvas id="parkingChart"></canvas>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;"></div>
+    </div>
+
+    <script>
+        let chart;
+        let rawCsvData = [];
+        let processedData = [];
+        let gaussianParams = null;
+        let availableMonths = [];
+        let availableDays = [];
+        let availableHotspots = [];
+        let hotspotToNameMap = {};
+
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const dayNames = [
+            'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+        ];
+
+        Chart.register({
+            id: 'businessHoursShading',
+            beforeDraw(chart, args, options) {
+                const {ctx, chartArea: {left, right, top, bottom}, scales: {x}} = chart;
+
+                if (!x || !chart.data.labels.length) return;
+
+                const getXPos = (label) => x.getPixelForValue(label);
+
+                const startBusiness = getXPos("09:00");
+                const endBusiness = getXPos("17:00");
+
+                ctx.save();
+                ctx.fillStyle = "rgba(100, 100, 100, 0.15)";
+                ctx.fillRect(left, top, startBusiness - left, bottom - top);
+                ctx.fillRect(endBusiness, top, right - endBusiness, bottom - top);
+                ctx.restore();
+            }
+        });
+
+        function gaussian(x, amplitude, mean, stdDev) {
+            const exponent = -0.5 * Math.pow((x - mean) / stdDev, 2);
+            return amplitude * Math.exp(exponent);
+        }
+
+        function fitGaussian(xData, yData) {
+            if (xData.length < 3) return null;
+
+            const maxY = Math.max(...yData);
+            const maxIndex = yData.indexOf(maxY);
+            const initialMean = xData[maxIndex];
+            
+            const halfMax = maxY / 2;
+            let leftHalf = 0, rightHalf = 0;
+            
+            for (let i = 0; i < yData.length; i++) {
+                if (yData[i] >= halfMax) {
+                    leftHalf = xData[i];
+                    break;
+                }
+            }
+            
+            for (let i = yData.length - 1; i >= 0; i--) {
+                if (yData[i] >= halfMax) {
+                    rightHalf = xData[i];
+                    break;
+                }
+            }
+            
+            const initialStdDev = Math.abs(rightHalf - leftHalf) / 2.35;
+
+            let bestParams = {
+                amplitude: maxY,
+                mean: initialMean,
+                stdDev: Math.max(initialStdDev, 30)
+            };
+            let bestError = Infinity;
+
+            const meanRange = 60;
+            const stdDevRange = 60;
+            const steps = 15;
+
+            for (let i = 0; i < steps; i++) {
+                for (let j = 0; j < steps; j++) {
+                    for (let k = 0; k < steps; k++) {
+                        const amplitude = maxY * (0.5 + 0.8 * i / steps);
+                        const mean = initialMean + (-meanRange + 2 * meanRange * j / steps);
+                        const stdDev = Math.max(20, initialStdDev + (-stdDevRange + 2 * stdDevRange * k / steps));
+
+                        let error = 0;
+                        for (let idx = 0; idx < xData.length; idx++) {
+                            const predicted = gaussian(xData[idx], amplitude, mean, stdDev);
+                            const residual = yData[idx] - predicted;
+                            error += residual * residual;
+                        }
+
+                        if (error < bestError) {
+                            bestError = error;
+                            bestParams = { amplitude, mean, stdDev };
+                        }
+                    }
+                }
+            }
+
+            return bestParams;
+        }
+
+        function setupFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadSection = document.getElementById('uploadSection');
+
+            fileInput.addEventListener('change', handleFile);
+
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('dragover');
+            });
+
+            uploadSection.addEventListener('dragleave', () => {
+                uploadSection.classList.remove('dragover');
+            });
+
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please select a CSV file.');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError('CSV parsing errors: ' + results.errors.map(e => e.message).join(', '));
+                        return;
+                    }
+                    
+                    processCsvData(results.data);
+                },
+                error: function(error) {
+                    showError('Error reading file: ' + error.message);
+                }
+            });
+        }
+
+        function processCsvData(data) {
+            try {
+                const cleanData = data.filter(row => {
+                    const keys = Object.keys(row).map(k => k.toLowerCase().trim());
+                    return keys.includes('date') && keys.includes('time') && keys.includes('length') && 
+                           keys.includes('hotspot #') && keys.includes('lot name');
+                }).map(row => {
+                    const normalizedRow = {};
+                    Object.keys(row).forEach(key => {
+                        const cleanKey = key.toLowerCase().trim();
+                        normalizedRow[cleanKey] = row[key];
+                    });
+                    return normalizedRow;
+                });
+
+                if (cleanData.length === 0) {
+                    showError('No valid data found. Please ensure CSV has columns: Date, Time, Length, Hotspot #, Lot Name');
+                    return;
+                }
+
+                hotspotToNameMap = {};
+                cleanData.forEach(row => {
+                    const hotspot = row['hotspot #'] ? row['hotspot #'].toString().trim() : '';
+                    const lotName = row['lot name'] ? row['lot name'].toString().trim() : '';
+                    if (hotspot && lotName && !hotspotToNameMap[hotspot]) {
+                        hotspotToNameMap[hotspot] = lotName;
+                    }
+                });
+
+                rawCsvData = cleanData.map((row, index) => {
+                    try {
+                        let dateStr = row.date;
+                        if (typeof dateStr === 'number') {
+                            dateStr = new Date((dateStr - 25569) * 86400 * 1000).toISOString().split('T')[0];
+                        }
+                        const date = new Date(dateStr);
+                        
+                        if (isNaN(date.getTime())) {
+                            throw new Error(`Invalid date: ${row.date}`);
+                        }
+
+                        let timeStr = row.time;
+                        if (typeof timeStr === 'number') {
+                            const hours = Math.floor(timeStr);
+                            const minutes = Math.round((timeStr - hours) * 60);
+                            timeStr = `${hours}:${minutes}`;
+                        }
+                        
+                        timeStr = timeStr.toString().trim();
+                        let hours, minutes;
+                        
+                        if (timeStr.includes(':')) {
+                            const timeParts = timeStr.split(':');
+                            hours = parseInt(timeParts[0]);
+                            minutes = parseInt(timeParts[1]);
+                        } else {
+                            const timeNum = parseFloat(timeStr);
+                            hours = Math.floor(timeNum);
+                            minutes = Math.round((timeNum - hours) * 60);
+                        }
+
+                        if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                            throw new Error(`Invalid time: ${row.time}`);
+                        }
+
+                        let length = row.length;
+                        if (typeof length === 'string') {
+                            length = parseFloat(length.replace(',', '.'));
+                        } else {
+                            length = parseFloat(length);
+                        }
+                        
+                        if (isNaN(length) || length <= 0 || length > 24) {
+                            throw new Error(`Invalid length: ${row.length} (must be between 0 and 24 hours)`);
+                        }
+
+                        const hotspot = row['hotspot #'] ? row['hotspot #'].toString().trim() : '';
+                        if (!hotspot) {
+                            throw new Error(`Invalid hotspot #: ${row['hotspot #']}`);
+                        }
+
+                        return {
+                            date: date,
+                            hours: hours,
+                            minutes: minutes,
+                            length: length,
+                            dayOfWeek: date.getDay(),
+                            month: date.getMonth(),
+                            hotspot: hotspot,
+                            lotName: hotspotToNameMap[hotspot] || 'Unknown'
+                        };
+                    } catch (error) {
+                        console.warn(`Row ${index + 1}: ${error.message}`);
+                        return null;
+                    }
+                }).filter(row => row !== null);
+
+                if (rawCsvData.length === 0) {
+                    showError('No valid parking sessions found after processing.');
+                    return;
+                }
+
+                availableMonths = [...new Set(rawCsvData.map(row => row.month))].sort((a, b) => a - b);
+                availableDays = [...new Set(rawCsvData.map(row => row.dayOfWeek))].sort((a, b) => a - b);
+                availableHotspots = [...new Set(rawCsvData.map(row => row.hotspot))].sort();
+
+                setupFilters();
+                showDataInfo();
+                applyFilters();
+
+                document.getElementById('controls').style.display = 'flex';
+                document.getElementById('chartContainer').style.display = 'block';
+                document.getElementById('stats').style.display = 'block';
+
+            } catch (error) {
+                showError('Error processing data: ' + error.message);
+            }
+        }
+
+        function setupFilters() {
+            const monthFiltersDiv = document.getElementById('monthFilters');
+            monthFiltersDiv.innerHTML = '';
+            availableMonths.forEach(monthNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="month${monthNum}" checked onchange="applyFilters()">
+                    <label for="month${monthNum}">${monthNames[monthNum]}</label>
+                `;
+                monthFiltersDiv.appendChild(div);
+            });
+
+            const dayFiltersDiv = document.getElementById('dayFilters');
+            dayFiltersDiv.innerHTML = '';
+            availableDays.forEach(dayNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="day${dayNum}" checked onchange="updateDayTypeCheckboxes(); applyFilters()">
+                    <label for="day${dayNum}">${dayNames[dayNum]}</label>
+                `;
+                dayFiltersDiv.appendChild(div);
+            });
+
+            updateDayTypeCheckboxes();
+
+            const hotspotFilterSelect = document.getElementById('hotspotFilter');
+            hotspotFilterSelect.innerHTML = '<option value="all">All Lots</option>';
+            availableHotspots.forEach(hotspot => {
+                const option = document.createElement('option');
+                option.value = hotspot;
+                option.textContent = `${hotspot} - ${hotspotToNameMap[hotspot] || 'Unknown'}`;
+                hotspotFilterSelect.appendChild(option);
+            });
+        }
+
+        function toggleAllMonths() {
+            const allChecked = availableMonths.every(month => 
+                document.getElementById(`month${month}`).checked
+            );
+            availableMonths.forEach(month => {
+                document.getElementById(`month${month}`).checked = !allChecked;
+            });
+            applyFilters();
+        }
+
+        function toggleAllDays() {
+            const allChecked = availableDays.every(day => 
+                document.getElementById(`day${day}`).checked
+            );
+            availableDays.forEach(day => {
+                document.getElementById(`day${day}`).checked = !allChecked;
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleWeekdays() {
+            const weekdayToggle = document.getElementById('weekdayToggle').checked;
+            availableDays.forEach(day => {
+                if (day >= 1 && day <= 5) { // Monday to Friday
+                    document.getElementById(`day${day}`).checked = weekdayToggle;
+                }
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleWeekends() {
+            const weekendToggle = document.getElementById('weekendToggle').checked;
+            availableDays.forEach(day => {
+                if (day === 0 || day === 6) { // Sunday or Saturday
+                    document.getElementById(`day${day}`).checked = weekendToggle;
+                }
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function updateDayTypeCheckboxes() {
+            const weekdayChecked = availableDays
+                .filter(day => day >= 1 && day <= 5)
+                .every(day => document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked);
+            const weekendChecked = availableDays
+                .filter(day => day === 0 || day === 6)
+                .every(day => document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked);
+
+            document.getElementById('weekdayToggle').checked = weekdayChecked;
+            document.getElementById('weekendToggle').checked = weekendChecked;
+        }
+
+        function applyFilters() {
+            const selectedMonths = availableMonths.filter(month => 
+                document.getElementById(`month${month}`).checked
+            );
+            const selectedDays = availableDays.filter(day => 
+                document.getElementById(`day${day}`).checked
+            );
+            const selectedHotspot = document.getElementById('hotspotFilter').value;
+            const estimateTrue = document.getElementById('estimateTrue').checked;
+
+            const filteredData = rawCsvData.filter(row => {
+                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
+                return selectedMonths.includes(row.month) && 
+                       selectedDays.includes(row.dayOfWeek) &&
+                       matchesHotspot;
+            });
+
+            if (filteredData.length === 0) {
+                showError('No data matches the selected filters.');
+                return;
+            }
+
+            processedData = processTimeSlots(filteredData, estimateTrue);
+            updateChart();
+            showDataInfo();
+        }
+
+        function processTimeSlots(sessions, estimateTrue) {
+            const minuteCounts = new Array(1440).fill(0);
+
+            sessions.forEach(session => {
+                const startMinute = session.hours * 60 + session.minutes;
+                const endMinute = startMinute + Math.round(session.length * 60);
+                
+                for (let minute = startMinute; minute < endMinute && minute < 1440; minute++) {
+                    if (minute >= 0) {
+                        minuteCounts[minute]++;
+                    }
+                }
+            });
+
+            const uniqueDays = new Set(sessions.map(session => 
+                session.date.toDateString()
+            )).size;
+
+            const result = [];
+            for (let minute = 0; minute < 1440; minute += 5) {
+                const hours = Math.floor(minute / 60);
+                const mins = minute % 60;
+                const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                
+                result.push({
+                    time: timeStr,
+                    minute: minute,
+                    normalizedCount: (minuteCounts[minute] / uniqueDays) * (estimateTrue ? 4 : 1)
+                });
+            }
+            
+            return result;
+        }
+
+        function updateChart() {
+            if (!chart) {
+                initChart();
+            }
+
+            const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const xData = businessHoursData.map(d => d.minute);
+            const yData = businessHoursData.map(d => d.normalizedCount);
+            
+            gaussianParams = fitGaussian(xData, yData);
+
+            const gaussianData = processedData.map(d => {
+                if (gaussianParams) {
+                    return gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev);
+                }
+                return null;
+            });
+
+            chart.data.labels = processedData.map(d => d.time);
+            chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
+            chart.data.datasets[1].data = gaussianData;
+
+            chart.data.datasets[0].label = document.getElementById('estimateTrue').checked 
+                ? 'Average Cars Parked (x4)'
+                : 'Average Cars Parked';
+
+            chart.update('none');
+            updateStats();
+        }
+
+        function updateStats() {
+            const statsDiv = document.getElementById('stats');
+            if (gaussianParams) {
+                const peakHour = Math.floor(gaussianParams.mean / 60);
+                const peakMin = Math.round((gaussianParams.mean % 60));
+                const peakTimeStr = `${peakHour.toString().padStart(2, '0')}:${peakMin.toString().padStart(2, '0')}`;
+                const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
+                
+                statsDiv.innerHTML = `
+                    <strong>Normal Distribution Summary Stats:</strong><br>
+                    Peak Time: ${peakTimeStr}<br>
+                    Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
+                    Standard Deviation: ${stdDevHours} hours<br>
+                    R² Fit: ${calculateRSquared().toFixed(3)}
+                `;
+            } else {
+                statsDiv.innerHTML = '<strong>Insufficient data for Normal Distribution</strong>';
+            }
+        }
+
+        function calculateRSquared() {
+            if (!gaussianParams) return 0;
+            
+            const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const yActual = businessHoursData.map(d => d.normalizedCount);
+            const yPredicted = businessHoursData.map(d => 
+                gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev)
+            );
+            
+            const yMean = yActual.reduce((a, b) => a + b, 0) / yActual.length;
+            const ssRes = yActual.reduce((sum, y, i) => sum + Math.pow(y - yPredicted[i], 2), 0);
+            const ssTot = yActual.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+            
+            return Math.max(0, 1 - (ssRes / ssTot));
+        }
+
+        function showDataInfo() {
+            const selectedMonths = availableMonths.filter(month => 
+                document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
+            );
+            const selectedDays = availableDays.filter(day => 
+                document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
+            );
+            const selectedHotspot = document.getElementById('hotspotFilter').value;
+
+            const filteredData = rawCsvData.filter(row => {
+                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
+                return selectedMonths.includes(row.month) && 
+                       selectedDays.includes(row.dayOfWeek) &&
+                       matchesHotspot;
+            });
+
+            const uniqueDays = new Set(filteredData.map(session => 
+                session.date.toDateString()
+            )).size;
+
+            const hotspotDisplay = selectedHotspot === 'all' ? 'All Lots' : `${selectedHotspot} - ${hotspotToNameMap[selectedHotspot] || 'Unknown'}`;
+
+            const dataInfoDiv = document.getElementById('dataInfo');
+            dataInfoDiv.innerHTML = `
+                <strong>Data Summary:</strong><br>
+                Total Sessions: ${filteredData.length.toLocaleString()}<br>
+                Unique Days: ${uniqueDays}<br>
+                Date Range: ${getDateRange(filteredData)}<br>
+                Average Sessions per Day: ${(filteredData.length / uniqueDays).toFixed(1)}<br>
+                Selected Lots: ${hotspotDisplay}
+            `;
+            dataInfoDiv.style.display = 'block';
+        }
+
+        function getDateRange(data) {
+            if (data.length === 0) return 'No data';
+            const dates = data.map(row => row.date).sort((a, b) => a - b);
+            const start = dates[0].toLocaleDateString();
+            const end = dates[dates.length - 1].toLocaleDateString();
+            return start === end ? start : `${start} to ${end}`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('controls'));
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function toggleGaussian() {
+            const showGaussian = document.getElementById('showGaussian').checked;
+            if (chart) {
+                chart.data.datasets[1].hidden = !showGaussian;
+                chart.update('none');
+            }
+        }
+
+        function toggleData() {
+            const showData = document.getElementById('showData').checked;
+            if (chart) {
+                chart.data.datasets[0].hidden = !showData;
+                chart.update('none');
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('parkingChart').getContext('2d');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Average Cars Parked',
+                            data: [],
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            pointHoverRadius: 4,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Normal Distribution',
+                            data: [],
+                            borderColor: '#FF5722',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Parking Occupancy Analysis from CSV Data',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time of Day'
+                            },
+                            ticks: {
+                                maxTicksLimit: 24,
+                                callback: function(value, index) {
+                                    const time = this.getLabelForValue(value);
+                                    const [hour, minute] = time.split(':');
+                                    return minute === '00' ? time : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Average Cars Parked per Day'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('load', () => {
+            setupFileUpload();
+        });
+    </script>
+</body>
+</html>
