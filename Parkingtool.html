@@ -35,17 +35,48 @@
         .controls {
             margin-bottom: 20px;
             display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
+            gap: 20px;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 6px;
+        }
+        .filter-panel {
+            flex: 1;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f0f8ff;
+        }
+        .comparison-panel {
+            flex: 1;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f8fff8;
+        }
+        .panel-title {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .panel-title.primary {
+            color: #2196F3;
+        }
+        .panel-title.comparison {
+            color: #4CAF50;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: flex-start;
         }
         .filter-group {
             display: flex;
             flex-direction: column;
             gap: 5px;
+            flex: 1;
+            max-width: 200px;
         }
         .filter-group h4 {
             margin: 0;
@@ -53,30 +84,41 @@
             color: #333;
         }
         .checkbox-group {
-            display: flex;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(7, auto);
+            gap: 5px;
             flex-wrap: wrap;
         }
-        .checkbox-item {
+        .month-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(6, auto);
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(4, auto);
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .checkbox-item, .radio-item {
             display: flex;
             align-items: center;
             gap: 4px;
             font-size: 13px;
         }
-        .checkbox-item input[type="checkbox"] {
+        .checkbox-item input[type="checkbox"], .radio-item input[type="radio"] {
             transform: scale(1.1);
         }
-        .toggle-section {
+        .control-buttons {
             display: flex;
             gap: 15px;
-            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
         }
-        .toggle {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        input[type="checkbox"] {
+        input[type="checkbox"], input[type="radio"] {
             transform: scale(1.2);
         }
         select {
@@ -84,6 +126,7 @@
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 14px;
+            width: 150px;
         }
         select:focus {
             outline: none;
@@ -94,13 +137,26 @@
             height: 500px;
             margin-top: 20px;
         }
-        .stats {
+        .combined-stats {
             margin-top: 15px;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 4px;
             font-family: 'Courier New', monospace;
             font-size: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .stats-column {
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stats-primary {
+            background-color: #e3f2fd;
+        }
+        .stats-comparison {
+            background-color: #e8f5e8;
         }
         .data-info {
             margin-top: 10px;
@@ -160,6 +216,23 @@
             padding: 40px;
             text-align: center;
         }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .export-csv {
+            background-color: #4CAF50 !important;
+        }
+        .export-png {
+            background-color: #FF9800 !important;
+        }
+        .export-csv:hover {
+            background-color: #45a049 !important;
+        }
+        .export-png:hover {
+            background-color: #f57c00 !important;
+        }
     </style>
 </head>
 <body>
@@ -180,73 +253,140 @@
         </div>
 
         <div class="controls" id="controls" style="display: none;">
-            <div class="filter-group">
-                <h4>Lot</h4>
-                <select id="hotspotFilter" onchange="applyFilters()">
-                    <option value="all">All Hotspots</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <h4>Months</h4>
-                <button onclick="toggleAllMonths()">Toggle All</button>
-                <div class="checkbox-group" id="monthFilters"></div>
-            </div>
-            
-            <div class="filter-group">
-                <h4>Days of Week</h4>
-                <button onclick="toggleAllDays()">Toggle All</button>
-                <div class="checkbox-group" id="dayFilters"></div>
-            </div>
-
-            <div class="filter-group">
-                <h4>Day Type</h4>
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
-                        <label for="weekdayToggle">Weekdays</label>
+            <!-- Primary Dataset Panel -->
+            <div class="filter-panel">
+                <h3 class="panel-title primary">Primary Dataset</h3>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Year</h4>
+                        <div class="radio-group" id="yearFilters"></div>
                     </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
-                        <label for="weekendToggle">Weekends</label>
+                    
+                    <div class="filter-group">
+                        <h4>Lot</h4>
+                        <select id="hotspotFilter" onchange="applyFilters()">
+                            <option value="all">All Hotspots</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Day Type</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
+                                <label for="weekdayToggle">Weekdays</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
+                                <label for="weekendToggle">Weekends</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Months</h4>
+                        <button onclick="toggleAllMonths()">Toggle All</button>
+                        <div class="month-checkboxes" id="monthFilters"></div>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Days of Week</h4>
+                        <button onclick="toggleAllDays()">Toggle All</button>
+                        <div class="checkbox-group" id="dayFilters"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="toggle-section">
-                <div class="toggle">
-                    <input type="checkbox" id="showGaussian" checked onchange="toggleGaussian()">
-                    <label for="showGaussian">Show Normal Distribution</label>
+            <!-- Comparison Dataset Panel -->
+            <div class="comparison-panel" id="comparisonPanel" style="display: none;">
+                <h3 class="panel-title comparison">Comparison Dataset</h3>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Year</h4>
+                        <div class="radio-group" id="comparisonYearFilters"></div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Compare With</h4>
+                        <select id="comparisonHotspotFilter" onchange="applyFilters()">
+                            <option value="none">No Comparison</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Day Type</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="comparisonWeekdayToggle" checked onchange="toggleComparisonWeekdays()">
+                                <label for="comparisonWeekdayToggle">Weekdays</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="comparisonWeekendToggle" checked onchange="toggleComparisonWeekends()">
+                                <label for="comparisonWeekendToggle">Weekends</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="toggle">
-                    <input type="checkbox" id="showData" checked onchange="toggleData()">
-                    <label for="showData">Show Raw Data</label>
+
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Months</h4>
+                        <button onclick="toggleAllComparisonMonths()">Toggle All</button>
+                        <div class="month-checkboxes" id="comparisonMonthFilters"></div>
+                    </div>
                 </div>
-                <div class="toggle">
-                    <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
-                    <label for="estimateTrue">Estimate True Value (x4)</label>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Days of Week</h4>
+                        <button onclick="toggleAllComparisonDays()">Toggle All</button>
+                        <div class="checkbox-group" id="comparisonDayFilters"></div>
+                    </div>
                 </div>
-                <button onclick="applyFilters()">Apply Filters</button>
             </div>
         </div>
 
-        <div class="data-info" id="dataInfo" style="display: none;"></div>
+        <div class="control-buttons" id="controlButtons" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
+                <label for="estimateTrue">Estimate True Value (x4)</label>
+            </div>
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="exportCSV()" class="export-csv">Export Data (CSV)</button>
+            <button onclick="exportPNG()" class="export-png">Export Chart (PNG)</button>
+        </div>
 
         <div class="chart-container" style="display: none;" id="chartContainer">
             <canvas id="parkingChart"></canvas>
         </div>
 
-        <div class="stats" id="stats" style="display: none;"></div>
+        <div class="combined-stats" id="combinedStats" style="display: none;">
+            <div class="stats-column stats-primary">
+                <strong>Primary Dataset Stats:</strong>
+                <div id="primaryStats"></div>
+            </div>
+            <div class="stats-column stats-comparison" id="comparisonStatsColumn" style="display: none;">
+                <strong>Comparison Dataset Stats:</strong>
+                <div id="comparisonStats"></div>
+            </div>
+        </div>
     </div>
 
     <script>
         let chart;
         let rawCsvData = [];
         let processedData = [];
+        let comparisonProcessedData = [];
         let gaussianParams = null;
+        let comparisonGaussianParams = null;
         let availableMonths = [];
         let availableDays = [];
         let availableHotspots = [];
+        let availableYears = [];
         let hotspotToNameMap = {};
 
         const monthNames = [
@@ -506,14 +646,16 @@
                 availableMonths = [...new Set(rawCsvData.map(row => row.month))].sort((a, b) => a - b);
                 availableDays = [...new Set(rawCsvData.map(row => row.dayOfWeek))].sort((a, b) => a - b);
                 availableHotspots = [...new Set(rawCsvData.map(row => row.hotspot))].sort();
+                availableYears = [...new Set(rawCsvData.map(row => row.date.getFullYear()))].sort();
 
                 setupFilters();
-                showDataInfo();
                 applyFilters();
 
                 document.getElementById('controls').style.display = 'flex';
+                document.getElementById('comparisonPanel').style.display = 'block';
+                document.getElementById('controlButtons').style.display = 'flex';
                 document.getElementById('chartContainer').style.display = 'block';
-                document.getElementById('stats').style.display = 'block';
+                document.getElementById('combinedStats').style.display = 'grid';
 
             } catch (error) {
                 showError('Error processing data: ' + error.message);
@@ -521,6 +663,33 @@
         }
 
         function setupFilters() {
+            // Primary year filters
+            const yearFiltersDiv = document.getElementById('yearFilters');
+            yearFiltersDiv.innerHTML = '';
+            availableYears.forEach(year => {
+                const div = document.createElement('div');
+                div.className = 'radio-item';
+                div.innerHTML = `
+                    <input type="radio" name="year" id="year${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="applyFilters()">
+                    <label for="year${year}">${year}</label>
+                `;
+                yearFiltersDiv.appendChild(div);
+            });
+
+            // Comparison year filters
+            const comparisonYearFiltersDiv = document.getElementById('comparisonYearFilters');
+            comparisonYearFiltersDiv.innerHTML = '';
+            availableYears.forEach(year => {
+                const div = document.createElement('div');
+                div.className = 'radio-item';
+                div.innerHTML = `
+                    <input type="radio" name="comparisonYear" id="comparisonYear${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="applyFilters()">
+                    <label for="comparisonYear${year}">${year}</label>
+                `;
+                comparisonYearFiltersDiv.appendChild(div);
+            });
+
+            // Primary filters
             const monthFiltersDiv = document.getElementById('monthFilters');
             monthFiltersDiv.innerHTML = '';
             availableMonths.forEach(monthNum => {
@@ -545,8 +714,35 @@
                 dayFiltersDiv.appendChild(div);
             });
 
-            updateDayTypeCheckboxes();
+            // Comparison filters
+            const comparisonMonthFiltersDiv = document.getElementById('comparisonMonthFilters');
+            comparisonMonthFiltersDiv.innerHTML = '';
+            availableMonths.forEach(monthNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="comparisonMonth${monthNum}" checked onchange="applyFilters()">
+                    <label for="comparisonMonth${monthNum}">${monthNames[monthNum]}</label>
+                `;
+                comparisonMonthFiltersDiv.appendChild(div);
+            });
 
+            const comparisonDayFiltersDiv = document.getElementById('comparisonDayFilters');
+            comparisonDayFiltersDiv.innerHTML = '';
+            availableDays.forEach(dayNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="comparisonDay${dayNum}" checked onchange="updateComparisonDayTypeCheckboxes(); applyFilters()">
+                    <label for="comparisonDay${dayNum}">${dayNames[dayNum]}</label>
+                `;
+                comparisonDayFiltersDiv.appendChild(div);
+            });
+
+            updateDayTypeCheckboxes();
+            updateComparisonDayTypeCheckboxes();
+
+            // Hotspot filters
             const hotspotFilterSelect = document.getElementById('hotspotFilter');
             hotspotFilterSelect.innerHTML = '<option value="all">All Lots</option>';
             availableHotspots.forEach(hotspot => {
@@ -554,6 +750,15 @@
                 option.value = hotspot;
                 option.textContent = `${hotspot} - ${hotspotToNameMap[hotspot] || 'Unknown'}`;
                 hotspotFilterSelect.appendChild(option);
+            });
+
+            const comparisonHotspotFilterSelect = document.getElementById('comparisonHotspotFilter');
+            comparisonHotspotFilterSelect.innerHTML = '<option value="none">No Comparison</option><option value="all">All Lots</option>';
+            availableHotspots.forEach(hotspot => {
+                const option = document.createElement('option');
+                option.value = hotspot;
+                option.textContent = `${hotspot} - ${hotspotToNameMap[hotspot] || 'Unknown'}`;
+                comparisonHotspotFilterSelect.appendChild(option);
             });
         }
 
@@ -578,10 +783,31 @@
             applyFilters();
         }
 
+        function toggleAllComparisonMonths() {
+            const allChecked = availableMonths.every(month => 
+                document.getElementById(`comparisonMonth${month}`).checked
+            );
+            availableMonths.forEach(month => {
+                document.getElementById(`comparisonMonth${month}`).checked = !allChecked;
+            });
+            applyFilters();
+        }
+
+        function toggleAllComparisonDays() {
+            const allChecked = availableDays.every(day => 
+                document.getElementById(`comparisonDay${day}`).checked
+            );
+            availableDays.forEach(day => {
+                document.getElementById(`comparisonDay${day}`).checked = !allChecked;
+            });
+            updateComparisonDayTypeCheckboxes();
+            applyFilters();
+        }
+
         function toggleWeekdays() {
             const weekdayToggle = document.getElementById('weekdayToggle').checked;
             availableDays.forEach(day => {
-                if (day >= 1 && day <= 5) { // Monday to Friday
+                if (day >= 1 && day <= 5) {
                     document.getElementById(`day${day}`).checked = weekdayToggle;
                 }
             });
@@ -592,11 +818,33 @@
         function toggleWeekends() {
             const weekendToggle = document.getElementById('weekendToggle').checked;
             availableDays.forEach(day => {
-                if (day === 0 || day === 6) { // Sunday or Saturday
+                if (day === 0 || day === 6) {
                     document.getElementById(`day${day}`).checked = weekendToggle;
                 }
             });
             updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleComparisonWeekdays() {
+            const weekdayToggle = document.getElementById('comparisonWeekdayToggle').checked;
+            availableDays.forEach(day => {
+                if (day >= 1 && day <= 5) {
+                    document.getElementById(`comparisonDay${day}`).checked = weekdayToggle;
+                }
+            });
+            updateComparisonDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleComparisonWeekends() {
+            const weekendToggle = document.getElementById('comparisonWeekendToggle').checked;
+            availableDays.forEach(day => {
+                if (day === 0 || day === 6) {
+                    document.getElementById(`comparisonDay${day}`).checked = weekendToggle;
+                }
+            });
+            updateComparisonDayTypeCheckboxes();
             applyFilters();
         }
 
@@ -612,7 +860,21 @@
             document.getElementById('weekendToggle').checked = weekendChecked;
         }
 
+        function updateComparisonDayTypeCheckboxes() {
+            const weekdayChecked = availableDays
+                .filter(day => day >= 1 && day <= 5)
+                .every(day => document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked);
+            const weekendChecked = availableDays
+                .filter(day => day === 0 || day === 6)
+                .every(day => document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked);
+
+            document.getElementById('comparisonWeekdayToggle').checked = weekdayChecked;
+            document.getElementById('comparisonWeekendToggle').checked = weekendChecked;
+        }
+
         function applyFilters() {
+            // Primary dataset
+            const selectedYear = Number(document.querySelector('input[name="year"]:checked').value);
             const selectedMonths = availableMonths.filter(month => 
                 document.getElementById(`month${month}`).checked
             );
@@ -624,9 +886,11 @@
 
             const filteredData = rawCsvData.filter(row => {
                 const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
-                return selectedMonths.includes(row.month) && 
+                const matchesYear = row.date.getFullYear() === selectedYear;
+                return selectedMonths.includes(row.month) &&
                        selectedDays.includes(row.dayOfWeek) &&
-                       matchesHotspot;
+                       matchesHotspot &&
+                       matchesYear;
             });
 
             if (filteredData.length === 0) {
@@ -635,8 +899,37 @@
             }
 
             processedData = processTimeSlots(filteredData, estimateTrue);
+
+            // Comparison dataset
+            const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
+            if (comparisonHotspot !== 'none') {
+                const comparisonSelectedYear = Number(document.querySelector('input[name="comparisonYear"]:checked').value);
+                const comparisonSelectedMonths = availableMonths.filter(month => 
+                    document.getElementById(`comparisonMonth${month}`).checked
+                );
+                const comparisonSelectedDays = availableDays.filter(day => 
+                    document.getElementById(`comparisonDay${day}`).checked
+                );
+
+                const comparisonFilteredData = rawCsvData.filter(row => {
+                    const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
+                    const matchesYear = row.date.getFullYear() === comparisonSelectedYear;
+                    return comparisonSelectedMonths.includes(row.month) &&
+                           comparisonSelectedDays.includes(row.dayOfWeek) &&
+                           matchesHotspot &&
+                           matchesYear;
+                });
+
+                if (comparisonFilteredData.length > 0) {
+                    comparisonProcessedData = processTimeSlots(comparisonFilteredData, estimateTrue);
+                } else {
+                    comparisonProcessedData = [];
+                }
+            } else {
+                comparisonProcessedData = [];
+            }
+
             updateChart();
-            showDataInfo();
         }
 
         function processTimeSlots(sessions, estimateTrue) {
@@ -678,6 +971,7 @@
                 initChart();
             }
 
+            // Primary dataset
             const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
             const xData = businessHoursData.map(d => d.minute);
             const yData = businessHoursData.map(d => d.normalizedCount);
@@ -691,36 +985,182 @@
                 return null;
             });
 
+            // Comparison dataset
+            let comparisonGaussianData = [];
+            if (comparisonProcessedData.length > 0) {
+                const comparisonBusinessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+                const comparisonXData = comparisonBusinessHoursData.map(d => d.minute);
+                const comparisonYData = comparisonBusinessHoursData.map(d => d.normalizedCount);
+                
+                comparisonGaussianParams = fitGaussian(comparisonXData, comparisonYData);
+
+                comparisonGaussianData = processedData.map(d => {
+                    if (comparisonGaussianParams) {
+                        return gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev);
+                    }
+                    return null;
+                });
+            } else {
+                comparisonGaussianParams = null;
+            }
+
             chart.data.labels = processedData.map(d => d.time);
             chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
             chart.data.datasets[1].data = gaussianData;
+            chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
+            chart.data.datasets[3].data = comparisonGaussianData;
 
             chart.data.datasets[0].label = document.getElementById('estimateTrue').checked 
-                ? 'Average Cars Parked (x4)'
-                : 'Average Cars Parked';
+                ? 'Primary - Average Cars Parked (x4)'
+                : 'Primary - Average Cars Parked';
+
+            chart.data.datasets[2].label = document.getElementById('estimateTrue').checked 
+                ? 'Comparison - Average Cars Parked (x4)'
+                : 'Comparison - Average Cars Parked';
+
+            const hasComparison = comparisonProcessedData.length > 0;
+            chart.data.datasets[2].hidden = !hasComparison;
+            chart.data.datasets[3].hidden = !hasComparison;
+
+            document.getElementById('comparisonStatsColumn').style.display = hasComparison ? 'block' : 'none';
 
             chart.update('none');
             updateStats();
         }
 
         function updateStats() {
-            const statsDiv = document.getElementById('stats');
+            const primaryStatsDiv = document.getElementById('primaryStats');
+            const comparisonStatsDiv = document.getElementById('comparisonStats');
+            
+            // Primary dataset filters & data
+            const selectedYear = Number(document.querySelector('input[name="year"]:checked').value);
+            const selectedMonths = availableMonths.filter(month =>
+                document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
+            );
+            const selectedDays = availableDays.filter(day => 
+                document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
+            );
+            const selectedHotspot = document.getElementById('hotspotFilter').value;
+
+            const filteredData = rawCsvData.filter(row => {
+                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
+                const matchesYear = row.date.getFullYear() === selectedYear;
+                return selectedMonths.includes(row.month) &&
+                       selectedDays.includes(row.dayOfWeek) &&
+                       matchesHotspot &&
+                       matchesYear;
+            });
+
+            const totalSessions = filteredData.length;
+            const uniqueDays = new Set(filteredData.map(session => session.date.toDateString())).size;
+            const hotspotDisplay = selectedHotspot === 'all' 
+                ? 'All Lots' 
+                : `${selectedHotspot} - ${hotspotToNameMap[selectedHotspot] || 'Unknown'}`;
+            const dateRange = getDateRange(filteredData);
+            const avgSessionsPerDay = uniqueDays > 0 ? (totalSessions / uniqueDays).toFixed(1) : '0.0';
+
             if (gaussianParams) {
                 const peakHour = Math.floor(gaussianParams.mean / 60);
-                const peakMin = Math.round((gaussianParams.mean % 60));
-                const peakTimeStr = `${peakHour.toString().padStart(2, '0')}:${peakMin.toString().padStart(2, '0')}`;
+                const peakMin = Math.round(gaussianParams.mean % 60);
+                const peakTimeStr = `${peakHour.toString().padStart(2,'0')}:${peakMin.toString().padStart(2,'0')}`;
                 const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
-                
-                statsDiv.innerHTML = `
-                    <strong>Normal Distribution Summary Stats:</strong><br>
-                    Peak Time: ${peakTimeStr}<br>
-                    Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
-                    Standard Deviation: ${stdDevHours} hours<br>
-                    R² Fit: ${calculateRSquared().toFixed(3)}
+                const rSquared = calculateRSquared().toFixed(3);
+
+                primaryStatsDiv.innerHTML = `
+Primary Dataset:<br>
+Year: ${selectedYear}<br>
+Total Sessions: ${totalSessions}<br>
+Unique Days: ${uniqueDays}<br>
+Date Range: ${dateRange}<br>
+Average Sessions per Day: ${avgSessionsPerDay}<br>
+Selected Lots: ${hotspotDisplay}<br>
+Peak Occupancy Time: ${peakTimeStr}<br>
+Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
+Standard Deviation: ${stdDevHours} hours<br>
+R² Fit: ${rSquared}
                 `;
             } else {
-                statsDiv.innerHTML = '<strong>Insufficient data for Normal Distribution</strong>';
+                primaryStatsDiv.innerHTML = `
+Primary Dataset:<br>
+Year: ${selectedYear}<br>
+Total Sessions: ${totalSessions}<br>
+Unique Days: ${uniqueDays}<br>
+Date Range: ${dateRange}<br>
+Average Sessions per Day: ${avgSessionsPerDay}<br>
+Selected Lots: ${hotspotDisplay}<br>
+<br>
+<strong>Insufficient data for Normal Distribution</strong>
+                `;
             }
+
+            // Comparison dataset filters & data
+            const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
+            let comparisonHtml = '';
+
+            if (comparisonHotspot !== 'none') {
+                const comparisonSelectedYear = Number(document.querySelector('input[name="comparisonYear"]:checked').value);
+                const comparisonSelectedMonths = availableMonths.filter(month => 
+                    document.getElementById(`comparisonMonth${month}`) && document.getElementById(`comparisonMonth${month}`).checked
+                );
+                const comparisonSelectedDays = availableDays.filter(day => 
+                    document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked
+                );
+
+                const comparisonFilteredData = rawCsvData.filter(row => {
+                    const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
+                    const matchesYear = row.date.getFullYear() === comparisonSelectedYear;
+                    return comparisonSelectedMonths.includes(row.month) &&
+                           comparisonSelectedDays.includes(row.dayOfWeek) &&
+                           matchesHotspot &&
+                           matchesYear;
+                });
+
+                const comparisonTotalSessions = comparisonFilteredData.length;
+                const comparisonUniqueDays = new Set(comparisonFilteredData.map(session => session.date.toDateString())).size;
+                const comparisonHotspotDisplay = comparisonHotspot === 'all' 
+                    ? 'All Lots' 
+                    : `${comparisonHotspot} - ${hotspotToNameMap[comparisonHotspot] || 'Unknown'}`;
+                const comparisonDateRange = getDateRange(comparisonFilteredData);
+                const comparisonAvgSessionsPerDay = comparisonUniqueDays > 0 
+                    ? (comparisonTotalSessions / comparisonUniqueDays).toFixed(1)
+                    : '0.0';
+
+                if (comparisonGaussianParams) {
+                    const cPeakHour = Math.floor(comparisonGaussianParams.mean / 60);
+                    const cPeakMin = Math.round(comparisonGaussianParams.mean % 60);
+                    const cPeakTimeStr = `${cPeakHour.toString().padStart(2,'0')}:${cPeakMin.toString().padStart(2,'0')}`;
+                    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
+                    const cRSquared = calculateComparisonRSquared().toFixed(3);
+
+                    comparisonHtml = `
+Comparison Dataset:<br>
+Year: ${comparisonSelectedYear}<br>
+Total Sessions: ${comparisonTotalSessions}<br>
+Unique Days: ${comparisonUniqueDays}<br>
+Date Range: ${comparisonDateRange}<br>
+Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+Selected Lots: ${comparisonHotspotDisplay}<br>
+Peak Occupancy Time: ${cPeakTimeStr}<br>
+Max Cars: ${comparisonGaussianParams.amplitude.toFixed(1)}<br>
+Standard Deviation: ${cStdDevHours} hours<br>
+R² Fit: ${cRSquared}
+                    `;
+                } else {
+                    comparisonHtml = `
+Comparison Dataset:<br>
+Year: ${comparisonSelectedYear}<br>
+Total Sessions: ${comparisonTotalSessions}<br>
+Unique Days: ${comparisonUniqueDays}<br>
+Date Range: ${comparisonDateRange}<br>
+Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+Selected Lots: ${comparisonHotspotDisplay}<br>
+<br>
+<strong>Insufficient data for Normal Distribution</strong>
+                    `;
+                }
+            }
+
+            comparisonStatsDiv.innerHTML = comparisonHtml;
         }
 
         function calculateRSquared() {
@@ -739,38 +1179,20 @@
             return Math.max(0, 1 - (ssRes / ssTot));
         }
 
-        function showDataInfo() {
-            const selectedMonths = availableMonths.filter(month => 
-                document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
+        function calculateComparisonRSquared() {
+            if (!comparisonGaussianParams) return 0;
+            
+            const businessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const yActual = businessHoursData.map(d => d.normalizedCount);
+            const yPredicted = businessHoursData.map(d => 
+                gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev)
             );
-            const selectedDays = availableDays.filter(day => 
-                document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
-            );
-            const selectedHotspot = document.getElementById('hotspotFilter').value;
-
-            const filteredData = rawCsvData.filter(row => {
-                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
-                return selectedMonths.includes(row.month) && 
-                       selectedDays.includes(row.dayOfWeek) &&
-                       matchesHotspot;
-            });
-
-            const uniqueDays = new Set(filteredData.map(session => 
-                session.date.toDateString()
-            )).size;
-
-            const hotspotDisplay = selectedHotspot === 'all' ? 'All Lots' : `${selectedHotspot} - ${hotspotToNameMap[selectedHotspot] || 'Unknown'}`;
-
-            const dataInfoDiv = document.getElementById('dataInfo');
-            dataInfoDiv.innerHTML = `
-                <strong>Data Summary:</strong><br>
-                Total Sessions: ${filteredData.length.toLocaleString()}<br>
-                Unique Days: ${uniqueDays}<br>
-                Date Range: ${getDateRange(filteredData)}<br>
-                Average Sessions per Day: ${(filteredData.length / uniqueDays).toFixed(1)}<br>
-                Selected Lots: ${hotspotDisplay}
-            `;
-            dataInfoDiv.style.display = 'block';
+            
+            const yMean = yActual.reduce((a, b) => a + b, 0) / yActual.length;
+            const ssRes = yActual.reduce((sum, y, i) => sum + Math.pow(y - yPredicted[i], 2), 0);
+            const ssTot = yActual.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+            
+            return Math.max(0, 1 - (ssRes / ssTot));
         }
 
         function getDateRange(data) {
@@ -789,20 +1211,51 @@
             setTimeout(() => errorDiv.remove(), 5000);
         }
 
-        function toggleGaussian() {
-            const showGaussian = document.getElementById('showGaussian').checked;
-            if (chart) {
-                chart.data.datasets[1].hidden = !showGaussian;
-                chart.update('none');
+        function exportCSV() {
+            if (!processedData || processedData.length === 0) {
+                alert('No data to export');
+                return;
             }
+
+            let header, rows;
+
+            if (comparisonProcessedData.length > 0) {
+                header = ['Time', 'Primary - Average Cars Parked', 'Comparison - Average Cars Parked'];
+                rows = processedData.map((d, i) => [
+                    d.time, 
+                    d.normalizedCount.toFixed(2),
+                    comparisonProcessedData[i] ? comparisonProcessedData[i].normalizedCount.toFixed(2) : '0.00'
+                ]);
+            } else {
+                header = ['Time', 'Average Cars Parked'];
+                rows = processedData.map(d => [d.time, d.normalizedCount.toFixed(2)]);
+            }
+
+            const csvContent = [header, ...rows].map(e => e.join(",")).join("\n");
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'parking_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
-        function toggleData() {
-            const showData = document.getElementById('showData').checked;
-            if (chart) {
-                chart.data.datasets[0].hidden = !showData;
-                chart.update('none');
+        function exportPNG() {
+            if (!chart) {
+                alert('No chart to export');
+                return;
             }
+
+            const a = document.createElement('a');
+            a.href = chart.toBase64Image();
+            a.download = 'parking_chart.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function initChart() {
@@ -814,7 +1267,7 @@
                     labels: [],
                     datasets: [
                         {
-                            label: 'Average Cars Parked',
+                            label: 'Primary - Average Cars Parked',
                             data: [],
                             borderColor: '#2196F3',
                             backgroundColor: 'rgba(33, 150, 243, 0.1)',
@@ -824,7 +1277,7 @@
                             tension: 0.1
                         },
                         {
-                            label: 'Normal Distribution',
+                            label: 'Primary - Normal Distribution',
                             data: [],
                             borderColor: '#FF5722',
                             backgroundColor: 'transparent',
@@ -833,6 +1286,29 @@
                             pointRadius: 0,
                             pointHoverRadius: 0,
                             tension: 0.4
+                        },
+                        {
+                            label: 'Comparison - Average Cars Parked',
+                            data: [],
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            pointHoverRadius: 4,
+                            tension: 0.1,
+                            hidden: true
+                        },
+                        {
+                            label: 'Comparison - Normal Distribution',
+                            data: [],
+                            borderColor: '#E91E63',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0.4,
+                            hidden: true
                         }
                     ]
                 },
