@@ -45,15 +45,16 @@
             border: 2px solid #2196F3;
             border-radius: 8px;
             padding: 15px;
+            width: 10px;
             background-color: #f0f8ff;
         }
         .comparison-panel {
             flex: 1;
+            width: 10px;
             border: 2px solid #4CAF50;
             border-radius: 8px;
             padding: 15px;
-            background-color: #f8fff8;
-        }
+            background-color: #f8fff8;  }
         .panel-title {
             margin: 0 0 15px 0;
             font-size: 16px;
@@ -76,7 +77,8 @@
             flex-direction: column;
             gap: 5px;
             flex: 1;
-            max-width: 200px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, auto);
         }
         .filter-group h4 {
             margin: 0;
@@ -85,19 +87,17 @@
         }
         .checkbox-group {
             display: grid;
-            grid-template-columns: repeat(7, auto);
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
             gap: 5px;
-            flex-wrap: wrap;
         }
+
         .month-checkboxes {
             display: grid;
-            grid-template-columns: repeat(6, auto);
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
             gap: 5px;
-            flex-wrap: wrap;
         }
         .radio-group {
-            display: grid;
-            grid-template-columns: repeat(4, auto);
+            display: flex;
             gap: 5px;
             flex-wrap: wrap;
         }
@@ -193,10 +193,10 @@
             overflow: hidden;
             display: flex;
             justify-content: center;
-           margin-top: -30px;
-          margin-bottom: 10px ;
-          margin-left: -30px;
-          margin-right: -30px;
+            margin-top: -30px;
+            margin-bottom: 10px ;
+            margin-left: -30px;
+            margin-right: -30px;
         }
         .navbar a {
             color: white;
