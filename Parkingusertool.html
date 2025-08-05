@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Parking Behavior Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .upload-section.dragover {
+            border-color: #2196F3;
+            background-color: #f0f8ff;
+        }
+        .search-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            display: none;
+        }
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .search-controls input, .search-controls select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-controls button {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .search-controls button:hover {
+            background-color: #1976D2;
+        }
+        .table-section {
+            margin: 20px 0;
+            display: none;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover:not(:disabled) {
+            background-color: #1976D2;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            font-weight: bold;
+        }
+        .summary-table, .user-details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .summary-table th, .summary-table td,
+        .user-details-table th, .user-details-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .summary-table th, .user-details-table th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: relative;
+            padding-right: 30px; /* Extra space for sort arrow */
+            min-width: 100px; /* Minimum width to prevent overlap */
+        }
+        .summary-table th:hover, .user-details-table th:hover {
+            background-color: #e8e8e8;
+        }
+        .summary-table tr:hover, .user-details-table tr:hover {
+            background-color: #e3f2fd !important;
+            transition: background-color 0.2s ease;
+        }
+        .summary-table tbody tr {
+            cursor: pointer;
+        }
+        .sort-arrow {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+        }
+        .user-details {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .chart-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .chart-controls select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .highlight-row {
+            background-color: #e3f2fd !important;
+        }
+        .navbar {
+            background-color: #333;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            margin-top: -20px;
+            margin-bottom: 10px ;
+            margin-left: -20px;
+            margin-right: -20px;
+        }
+        .navbar a {
+            color: white;
+            padding: 14px 20px;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            transition: background 0.3s;
+        }
+        .navbar a:hover {
+            background-color: #575757;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="index.html">Home</a>
+        <a href="Bus visualizer 2.0.html">Platforming</a>
+        <a href="GO Train maker.html">GO Train Chart</a>
+        <a href="Parkingtool.html">Parking Usage Tool</a>
+        <a href="Parkingusertool.html">Parking User Search</a>
+    </div>
+
+    <div class="container">
+        <h1>User Parking Behavior Analysis</h1>
+        <p>Analyze parking patterns by license plate and user behavior</p>
+
+        <div class="upload-section" id="uploadSection">
+            <h3>Upload CSV File</h3>
+            <p>Expected columns: HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</p>
+            <input type="file" id="fileInput" accept=".csv" />
+            <p><small>Or drag and drop a CSV file here</small></p>
+        </div>
+
+        <div class="search-section" id="searchSection">
+            <h3>Search Users</h3>
+            <div class="search-controls">
+                <input type="text" id="searchInput" placeholder="Enter license plate, user ID, or vehicle make...">
+                <button onclick="searchUser()">Search</button>
+                <button onclick="clearSearch()">Clear</button>
+            </div>
+        </div>
+
+        <div class="table-section" id="tableSection">
+            <h3>User Summary</h3>
+            <table class="summary-table" id="summaryTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTableByColumn('plate')">License Plate <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('user')">User ID <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('make')">Vehicle Make <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('instances')">Parking Instances <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('totalTime')">Total Time (hrs) <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('totalSpend')">Total Spend ($) <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('avgSpend')">Avg Spend/Session ($) <span class="sort-arrow"></span></th>
+                        <th onclick="sortTableByColumn('avgTime')">Avg Time/Session (hrs) <span class="sort-arrow"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTableBody">
+                </tbody>
+            </table>
+            
+            <div class="pagination">
+                <button id="prevBtn" onclick="previousPage()">Previous</button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button id="nextBtn" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <div class="user-details" id="userDetails">
+            <h3 id="userDetailsTitle">User Details</h3>
+            <div class="stats-grid" id="statsGrid">
+            </div>
+            
+            <div class="chart-container">
+                <h4>Usage Pattern</h4>
+                <div class="chart-controls">
+                    <label>View by:</label>
+                    <select id="chartPeriod" onchange="updateChart()">
+                        <option value="month">Month</option>
+                        <option value="year">Year</option>
+                    </select>
+                </div>
+                <canvas id="usageChart" width="400" height="200"></canvas>
+            </div>
+            
+            <h4>Individual Parking Sessions</h4>
+            <table class="user-details-table" id="userDetailsTable">
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>HotSpot #</th>
+                        <th>City #</th>
+                        <th>Duration (hrs)</th>
+                        <th>Total ($)</th>
+                    </tr>
+                </thead>
+                <tbody id="userDetailsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let userSummaryData = [];
+        let currentSortColumn = 'plate';
+        let currentSortOrder = 'asc';
+        let currentPage = 1;
+        let recordsPerPage = 50;
+        let currentChart = null;
+
+        function setupFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadSection = document.getElementById('uploadSection');
+
+            fileInput.addEventListener('change', handleFile);
+
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('dragover');
+            });
+
+            uploadSection.addEventListener('dragleave', () => {
+                uploadSection.classList.remove('dragover');
+            });
+
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please select a CSV file.');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showError('CSV parsing errors: ' + results.errors.map(e => e.message).join(', '));
+                        return;
+                    }
+                    processCsvData(results.data);
+                },
+                error: function(error) {
+                    showError('Error reading file: ' + error.message);
+                }
+            });
+        }
+
+        function processCsvData(data) {
+            try {
+                const expectedColumns = ['hotspot #', 'city #', 'date', 'time', 'user', 'plate', 'make', 'amount', 'tax', 'total', 'length'];
+                
+                const cleanData = data.filter(row => {
+                    const keys = Object.keys(row).map(k => k.toLowerCase().trim());
+                    const requiredColumns = expectedColumns.filter(col => col !== 'amount' && col !== 'tax');
+                    return requiredColumns.every(col => keys.includes(col));
+                }).map(row => {
+                    const normalizedRow = {};
+                    Object.keys(row).forEach(key => {
+                        const cleanKey = key.toLowerCase().trim();
+                        normalizedRow[cleanKey] = row[key];
+                    });
+                    return normalizedRow;
+                });
+
+                if (cleanData.length === 0) {
+                    showError('No valid data found. Please ensure CSV has required columns.');
+                    return;
+                }
+
+                rawData = cleanData.map((row, index) => {
+                    try {
+                        const parseNumber = (value, fieldName) => {
+                            if (value === null || value === undefined || value === '') {
+                                return 0;
+                            }
+                            
+                            const cleanValue = value.toString().replace(/[$,\s]/g, '');
+                            const parsed = parseFloat(cleanValue);
+                            
+                            if (isNaN(parsed)) {
+                                console.warn(`Row ${index + 1}: Invalid ${fieldName}: ${value}, using 0`);
+                                return 0;
+                            }
+                            return parsed;
+                        };
+
+                        // Parse date for better handling
+                        const dateStr = row['date']?.toString().trim() || '';
+                        const timeStr = row['time']?.toString().trim() || '';
+                        let parsedDate = null;
+                        
+                        if (dateStr) {
+                            try {
+                                parsedDate = new Date(dateStr);
+                                if (isNaN(parsedDate.getTime())) {
+                                    parsedDate = null;
+                                }
+                            } catch (e) {
+                                parsedDate = null;
+                            }
+                        }
+
+                        return {
+                            hotspot: row['hotspot #']?.toString().trim() || '',
+                            city: row['city #']?.toString().trim() || '',
+                            startTime: dateStr,
+                            time: timeStr,
+                            parsedDate: parsedDate,
+                            user: row['user']?.toString().trim() || '',
+                            plate: row['plate']?.toString().trim().toUpperCase() || '',
+                            make: row['make']?.toString().trim() || '',
+                            amount: parseNumber(row['amount'], 'amount'),
+                            tax: parseNumber(row['tax'], 'tax'),
+                            total: parseNumber(row['total'], 'total'),
+                            length: parseNumber(row['length'], 'length')
+                        };
+                    } catch (error) {
+                        console.warn(`Row ${index + 1}: ${error.message}`);
+                        return null;
+                    }
+                }).filter(row => row !== null && row.plate && row.user);
+
+                if (rawData.length === 0) {
+                    showError('No valid parking records found after processing.');
+                    return;
+                }
+
+                console.log(`Processed ${rawData.length} valid records`);
+                generateUserSummary();
+                currentPage = 1;
+                displaySummaryTable();
+                updatePagination();
+                
+                document.getElementById('searchSection').style.display = 'block';
+                document.getElementById('tableSection').style.display = 'block';
+
+            } catch (error) {
+                showError('Error processing data: ' + error.message);
+            }
+        }
+
+        function generateUserSummary() {
+            const userMap = new Map();
+
+            rawData.forEach(record => {
+                const key = record.plate;
+                
+                if (!userMap.has(key)) {
+                    userMap.set(key, {
+                        plate: record.plate,
+                        user: record.user,
+                        make: record.make,
+                        instances: 0,
+                        totalTime: 0,
+                        totalSpend: 0,
+                        sessions: []
+                    });
+                }
+
+                const userData = userMap.get(key);
+                userData.instances++;
+                userData.totalTime += record.length;
+                userData.totalSpend += record.total;
+                userData.sessions.push(record);
+                
+                if (!userData.user && record.user) {
+                    userData.user = record.user;
+                }
+                if (!userData.make && record.make) {
+                    userData.make = record.make;
+                }
+            });
+
+            userSummaryData = Array.from(userMap.values()).map(user => {
+                const avgSpend = user.instances > 0 ? user.totalSpend / user.instances : 0;
+                const avgTime = user.instances > 0 ? user.totalTime / user.instances : 0;
+                
+                return {
+                    ...user,
+                    avgSpend: avgSpend,
+                    avgTime: avgTime
+                };
+            });
+
+            userSummaryData.sort((a, b) => a.plate.localeCompare(b.plate));
+            
+            console.log(`Generated summary for ${userSummaryData.length} unique license plates`);
+        }
+
+        function displaySummaryTable() {
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+            const displayData = userSummaryData.slice(startIndex, endIndex);
+
+            displayData.forEach(user => {
+                const row = document.createElement('tr');
+                row.onclick = () => showUserDetails(user.plate);
+                
+                row.innerHTML = `
+                    <td>${user.plate}</td>
+                    <td>${user.user}</td>
+                    <td>${user.make}</td>
+                    <td>${user.instances}</td>
+                    <td>${user.totalTime.toFixed(2)}</td>
+                    <td>${user.totalSpend.toFixed(2)}</td>
+                    <td>${user.avgSpend.toFixed(2)}</td>
+                    <td>${user.avgTime.toFixed(2)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(userSummaryData.length / recordsPerPage);
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(userSummaryData.length / recordsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displaySummaryTable();
+                updatePagination();
+            }
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displaySummaryTable();
+                updatePagination();
+            }
+        }
+
+        function sortTableByColumn(column) {
+            if (currentSortColumn === column) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortOrder = 'asc';
+            }
+            
+            userSummaryData.sort((a, b) => {
+                let aVal = a[column];
+                let bVal = b[column];
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (currentSortOrder === 'desc') {
+                    return bVal > aVal ? 1 : -1;
+                } else {
+                    return aVal > bVal ? 1 : -1;
+                }
+            });
+            
+            currentPage = 1;
+            displaySummaryTable();
+            updatePagination();
+            updateSortArrows(column);
+        }
+
+        function updateSortArrows(activeColumn) {
+            const arrows = document.querySelectorAll('.sort-arrow');
+            arrows.forEach(arrow => arrow.textContent = '');
+            
+            const activeArrow = document.querySelector(`th[onclick="sortTableByColumn('${activeColumn}')"] .sort-arrow`);
+            if (activeArrow) {
+                activeArrow.textContent = currentSortOrder === 'asc' ? '▲' : '▼';
+            }
+        }
+
+        function searchUser() {
+            const searchTerm = document.getElementById('searchInput').value.trim().toUpperCase();
+            if (!searchTerm) {
+                showError('Please enter a license plate, user ID, or vehicle make to search.');
+                return;
+            }
+
+            // Search by license plate, user ID, or make
+            const user = userSummaryData.find(u => 
+                u.plate.toUpperCase() === searchTerm || 
+                u.user.toString().toUpperCase() === searchTerm ||
+                u.make.toUpperCase().includes(searchTerm)
+            );
+
+            if (user) {
+                // Find which page the user is on
+                const userIndex = userSummaryData.findIndex(u => u.plate === user.plate);
+                const userPage = Math.ceil((userIndex + 1) / recordsPerPage);
+                
+                currentPage = userPage;
+                displaySummaryTable();
+                updatePagination();
+                
+                showUserDetails(user.plate);
+                highlightUserInTable(user.plate);
+            } else {
+                showError('User not found. Please check the license plate, user ID, or vehicle make.');
+            }
+        }
+
+        function highlightUserInTable(plate) {
+            const rows = document.querySelectorAll('#summaryTableBody tr');
+            rows.forEach(row => row.classList.remove('highlight-row'));
+            
+            rows.forEach(row => {
+                if (row.cells[0].textContent === plate) {
+                    row.classList.add('highlight-row');
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        function showUserDetails(plate) {
+            const user = userSummaryData.find(u => u.plate === plate);
+            if (!user) return;
+
+            document.getElementById('userDetailsTitle').textContent = `Details for ${plate} (User: ${user.user})`;
+
+            const sessions = user.sessions;
+            const hotspots = [...new Set(sessions.map(s => s.hotspot))];
+            
+            const avgSessionLength = user.totalTime / user.instances;
+            const maxSession = sessions.length > 0 ? Math.max(...sessions.map(s => s.length)) : 0;
+            const minSession = sessions.length > 0 ? Math.min(...sessions.map(s => s.length)) : 0;
+            const maxSpend = sessions.length > 0 ? Math.max(...sessions.map(s => s.total)) : 0;
+            const minSpend = sessions.length > 0 ? Math.min(...sessions.map(s => s.total)) : 0;
+            
+            const hotspotCounts = {};
+            sessions.forEach(s => {
+                hotspotCounts[s.hotspot] = (hotspotCounts[s.hotspot] || 0) + 1;
+            });
+            const mostUsedHotspot = Object.entries(hotspotCounts).length > 0 ? 
+                Object.entries(hotspotCounts).sort((a, b) => b[1] - a[1])[0] : ['None', 0];
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h4>Total Parking Sessions</h4>
+                    <div class="stat-value">${user.instances}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Time Parked</h4>
+                    <div class="stat-value">${user.totalTime.toFixed(2)} hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Amount Spent</h4>
+                    <div class="stat-value">$${user.totalSpend.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Average Session Length</h4>
+                    <div class="stat-value">${avgSessionLength.toFixed(2)} hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Average Spend per Session</h4>
+                    <div class="stat-value">$${user.avgSpend.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Vehicle Make</h4>
+                    <div class="stat-value">${user.make}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Longest Session</h4>
+                    <div class="stat-value">${maxSession.toFixed(2)} hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Shortest Session</h4>
+                    <div class="stat-value">${minSession.toFixed(2)} hrs</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Highest Single Payment</h4>
+                    <div class="stat-value">$${maxSpend.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Lowest Single Payment</h4>
+                    <div class="stat-value">$${minSpend.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Unique Hotspots Used</h4>
+                    <div class="stat-value">${hotspots.length}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Most Used Hotspot</h4>
+                    <div class="stat-value">${mostUsedHotspot[0]} (${mostUsedHotspot[1]}x)</div>
+                </div>
+            `;
+
+            // Generate usage chart
+            generateUsageChart(user);
+
+            const tbody = document.getElementById('userDetailsTableBody');
+            tbody.innerHTML = '';
+            
+            sessions.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)).forEach(session => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${session.startTime} ${session.time}</td>
+                    <td>${session.hotspot}</td>
+                    <td>${session.city}</td>
+                    <td>${session.length.toFixed(2)}</td>
+                    <td>${session.total.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('userDetails').style.display = 'block';
+            document.getElementById('userDetails').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function generateUsageChart(user) {
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            const period = document.getElementById('chartPeriod').value;
+            
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Filter sessions with valid dates
+            const validSessions = user.sessions.filter(s => s.parsedDate);
+            
+            if (validSessions.length === 0) {
+                // Show message if no valid dates
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: 'Usage Count',
+                            data: [0],
+                            backgroundColor: 'rgba(33, 150, 243, 0.6)',
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'No valid date data available'
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            let labels = [];
+            let data = [];
+            let usageMap = {};
+
+            if (period === 'month') {
+                validSessions.forEach(session => {
+                    const date = session.parsedDate;
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    usageMap[key] = (usageMap[key] || 0) + 1;
+                });
+                
+                // Sort by date
+                const sortedKeys = Object.keys(usageMap).sort();
+                labels = sortedKeys.map(key => {
+                    const [year, month] = key.split('-');
+                    return `${new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+                });
+                data = sortedKeys.map(key => usageMap[key]);
+            } else {
+                validSessions.forEach(session => {
+                    const year = session.parsedDate.getFullYear();
+                    usageMap[year] = (usageMap[year] || 0) + 1;
+                });
+                
+                const sortedKeys = Object.keys(usageMap).sort();
+                labels = sortedKeys;
+                data = sortedKeys.map(key => usageMap[key]);
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Usage Count',
+                        data: data,
+                        backgroundColor: 'rgba(33, 150, 243, 0.6)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Usage Pattern by ${period.charAt(0).toUpperCase() + period.slice(1)}`
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            const userDetailsTitle = document.getElementById('userDetailsTitle').textContent;
+            const plateMatch = userDetailsTitle.match(/Details for ([A-Z0-9]+)/);
+            if (plateMatch) {
+                const plate = plateMatch[1];
+                const user = userSummaryData.find(u => u.plate === plate);
+                if (user) {
+                    generateUsageChart(user);
+                }
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('userDetails').style.display = 'none';
+            
+            const rows = document.querySelectorAll('#summaryTableBody tr');
+            rows.forEach(row => row.classList.remove('highlight-row'));
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('searchSection'));
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        window.addEventListener('load', () => {
+            setupFileUpload();
+        });
+    </script>
+</body>
+</html>
