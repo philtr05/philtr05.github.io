@@ -1078,8 +1078,8 @@ Average Sessions per Day: ${avgSessionsPerDay}<br>
 Selected Lots: ${hotspotDisplay}<br>
 Peak Occupancy Time: ${peakTimeStr}<br>
 Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
-Standard Deviation: ${stdDevHours} hours<br>
-R² Fit: ${rSquared}
+<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
+<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
                 `;
             } else {
                 primaryStatsDiv.innerHTML = `
@@ -1144,8 +1144,8 @@ Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
 Selected Lots: ${comparisonHotspotDisplay}<br>
 Peak Occupancy Time: ${cPeakTimeStr}<br>
 Max Cars: ${comparisonGaussianParams.amplitude.toFixed(1)}<br>
-Standard Deviation: ${cStdDevHours} hours<br>
-R² Fit: ${cRSquared}
+<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
+<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
                     `;
                 } else {
                     comparisonHtml = `
@@ -1369,4 +1369,3 @@ Selected Lots: ${comparisonHotspotDisplay}<br>
     </script>
 </body>
 </html>
-
