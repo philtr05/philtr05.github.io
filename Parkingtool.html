@@ -54,7 +54,8 @@
             border: 2px solid #4CAF50;
             border-radius: 8px;
             padding: 15px;
-            background-color: #f8fff8;  }
+            background-color: #f8fff8;
+        }
         .panel-title {
             margin: 0 0 15px 0;
             font-size: 16px;
@@ -90,7 +91,6 @@
             grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
             gap: 5px;
         }
-
         .month-checkboxes {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
@@ -132,6 +132,79 @@
             outline: none;
             border-color: #2196F3;
         }
+        
+        /* ===== CALENDAR ICON AND DATE RANGE STYLES ===== */
+        .calendar-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .calendar-icon {
+            background: none;
+            border: 1px solid #2196F3;
+            border-radius: 4px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #2196F3;
+            transition: all 0.2s;
+        }
+        
+        .calendar-icon:hover {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .date-range {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+        }
+        
+        .date-range.show {
+            display: flex;
+        }
+        
+        .date-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input[type="date"] {
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 13px;
+            width: 140px;
+        }
+        
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        .date-range label {
+            font-size: 12px;
+            min-width: 60px;
+            font-weight: bold;
+        }
+        
+        /* Hide calendar container by default */
+        .calendar-container.hidden {
+            display: none;
+        }
+
         .chart-container {
             position: relative;
             height: 500px;
@@ -194,7 +267,7 @@
             display: flex;
             justify-content: center;
             margin-top: -30px;
-            margin-bottom: 10px ;
+            margin-bottom: 10px;
             margin-left: -30px;
             margin-right: -30px;
         }
@@ -261,8 +334,27 @@
                 
                 <div class="filter-row">
                     <div class="filter-group">
-                        <h4>Year</h4>
-                        <div class="radio-group" id="yearFilters"></div>
+                        <h4>Year / Custom Range</h4>
+                        <div class="radio-group" id="yearFilters">
+                            <!-- Year radio buttons will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- ===== CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <div class="filter-group">
+                        <div class="calendar-container hidden" id="primaryCalendarContainer">
+                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('primary')">📅</button>
+                            <div class="date-range" id="primaryDateRange">
+                                <div class="date-input-row">
+                                    <label for="startDate">Start:</label>
+                                    <input type="date" id="startDate" onchange="applyFilters()">
+                                </div>
+                                <div class="date-input-row">
+                                    <label for="endDate">End:</label>
+                                    <input type="date" id="endDate" onchange="applyFilters()">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="filter-group">
@@ -308,8 +400,27 @@
                 
                 <div class="filter-row">
                     <div class="filter-group">
-                        <h4>Year</h4>
-                        <div class="radio-group" id="comparisonYearFilters"></div>
+                        <h4>Year / Custom Range</h4>
+                        <div class="radio-group" id="comparisonYearFilters">
+                            <!-- Comparison year radio buttons will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- ===== COMPARISON CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <div class="filter-group">
+                        <div class="calendar-container hidden" id="comparisonCalendarContainer">
+                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('comparison')">📅</button>
+                            <div class="date-range" id="comparisonDateRange">
+                                <div class="date-input-row">
+                                    <label for="comparisonStartDate">Start:</label>
+                                    <input type="date" id="comparisonStartDate" onchange="applyFilters()">
+                                </div>
+                                <div class="date-input-row">
+                                    <label for="comparisonEndDate">End:</label>
+                                    <input type="date" id="comparisonEndDate" onchange="applyFilters()">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="filter-group">
@@ -399,6 +510,91 @@
         const dayNames = [
             'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
         ];
+
+        // ===== CALENDAR DATE PICKER FUNCTIONS =====
+        function toggleDatePicker(type) {
+            const dateRange = document.getElementById(type + 'DateRange');
+            if (dateRange.classList.contains('show')) {
+                dateRange.classList.remove('show');
+            } else {
+                // Hide any other open date pickers
+                document.querySelectorAll('.date-range.show').forEach(el => {
+                    el.classList.remove('show');
+                });
+                dateRange.classList.add('show');
+            }
+        }
+
+        function clearPrimaryDateInputs() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            
+            const primaryDateRange = document.getElementById('primaryDateRange');
+            if (primaryDateRange.classList.contains('show')) {
+                primaryDateRange.classList.remove('show');
+            }
+        }
+
+        function clearComparisonDateInputs() {
+            document.getElementById('comparisonStartDate').value = '';
+            document.getElementById('comparisonEndDate').value = '';
+            
+            const comparisonDateRange = document.getElementById('comparisonDateRange');
+            if (comparisonDateRange.classList.contains('show')) {
+                comparisonDateRange.classList.remove('show');
+            }
+        }
+
+        // ===== NEW FUNCTIONS FOR CUSTOM RANGE RADIO FUNCTIONALITY =====
+        function handleYearRadioChange(type, value) {
+            if (value === 'custom') {
+                // Show calendar icon when Custom Range is selected
+                const calendarContainer = document.getElementById(type + 'CalendarContainer');
+                calendarContainer.classList.remove('hidden');
+            } else {
+                // Hide calendar icon and clear dates when any year is selected
+                const calendarContainer = document.getElementById(type + 'CalendarContainer');
+                calendarContainer.classList.add('hidden');
+                
+                // Clear date inputs
+                if (type === 'primary') {
+                    clearPrimaryDateInputs();
+                } else {
+                    clearComparisonDateInputs();
+                }
+            }
+            applyFilters();
+        }
+
+        // Close date pickers when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.calendar-container')) {
+                document.querySelectorAll('.date-range.show').forEach(el => {
+                    el.classList.remove('show');
+                });
+            }
+        });
+
+        function setupDateRangeInputs() {
+            if (rawCsvData.length === 0) return;
+            const dates = rawCsvData.map(row => row.date).sort((a, b) => a - b);
+            const minDate = dates[0].toISOString().split('T')[0];
+            const maxDate = dates[dates.length - 1].toISOString().split('T')[0];
+
+            const startDateElem = document.getElementById('startDate');
+            const endDateElem = document.getElementById('endDate');
+            startDateElem.min = minDate;
+            startDateElem.max = maxDate;
+            endDateElem.min = minDate;
+            endDateElem.max = maxDate;
+
+            const comparisonStartDateElem = document.getElementById('comparisonStartDate');
+            const comparisonEndDateElem = document.getElementById('comparisonEndDate');
+            comparisonStartDateElem.min = minDate;
+            comparisonStartDateElem.max = maxDate;
+            comparisonEndDateElem.min = minDate;
+            comparisonEndDateElem.max = maxDate;
+        }
 
         Chart.register({
             id: 'businessHoursShading',
@@ -651,6 +847,7 @@
                 availableYears = [...new Set(rawCsvData.map(row => row.date.getFullYear()))].sort();
 
                 setupFilters();
+                setupDateRangeInputs();
                 applyFilters();
 
                 document.getElementById('controls').style.display = 'flex';
@@ -665,31 +862,53 @@
         }
 
         function setupFilters() {
-            // Primary year filters
+            // Primary year filters with Custom Range option
             const yearFiltersDiv = document.getElementById('yearFilters');
             yearFiltersDiv.innerHTML = '';
+            
+            // Add year radio buttons
             availableYears.forEach(year => {
                 const div = document.createElement('div');
                 div.className = 'radio-item';
                 div.innerHTML = `
-                    <input type="radio" name="year" id="year${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="applyFilters()">
+                    <input type="radio" name="year" id="year${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="handleYearRadioChange('primary', '${year}')">
                     <label for="year${year}">${year}</label>
                 `;
                 yearFiltersDiv.appendChild(div);
             });
+            
+            // Add Custom Range radio button
+            const customDiv = document.createElement('div');
+            customDiv.className = 'radio-item';
+            customDiv.innerHTML = `
+                <input type="radio" name="year" id="yearCustom" value="custom" onchange="handleYearRadioChange('primary', 'custom')">
+                <label for="yearCustom">Custom Range</label>
+            `;
+            yearFiltersDiv.appendChild(customDiv);
 
-            // Comparison year filters
+            // Comparison year filters with Custom Range option
             const comparisonYearFiltersDiv = document.getElementById('comparisonYearFilters');
             comparisonYearFiltersDiv.innerHTML = '';
+            
+            // Add comparison year radio buttons
             availableYears.forEach(year => {
                 const div = document.createElement('div');
                 div.className = 'radio-item';
                 div.innerHTML = `
-                    <input type="radio" name="comparisonYear" id="comparisonYear${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="applyFilters()">
+                    <input type="radio" name="comparisonYear" id="comparisonYear${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="handleYearRadioChange('comparison', '${year}')">
                     <label for="comparisonYear${year}">${year}</label>
                 `;
                 comparisonYearFiltersDiv.appendChild(div);
             });
+            
+            // Add Comparison Custom Range radio button
+            const comparisonCustomDiv = document.createElement('div');
+            comparisonCustomDiv.className = 'radio-item';
+            comparisonCustomDiv.innerHTML = `
+                <input type="radio" name="comparisonYear" id="comparisonYearCustom" value="custom" onchange="handleYearRadioChange('comparison', 'custom')">
+                <label for="comparisonYearCustom">Custom Range</label>
+            `;
+            comparisonYearFiltersDiv.appendChild(comparisonCustomDiv);
 
             // Primary filters
             const monthFiltersDiv = document.getElementById('monthFilters');
@@ -875,8 +1094,11 @@
         }
 
         function applyFilters() {
-            // Primary dataset
-            const selectedYear = Number(document.querySelector('input[name="year"]:checked').value);
+            // Primary dataset - check if custom range is selected
+            const selectedYearRadio = document.querySelector('input[name="year"]:checked');
+            const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
+            const isCustomRange = selectedYear === 'custom';
+            
             const selectedMonths = availableMonths.filter(month => 
                 document.getElementById(`month${month}`).checked
             );
@@ -886,13 +1108,35 @@
             const selectedHotspot = document.getElementById('hotspotFilter').value;
             const estimateTrue = document.getElementById('estimateTrue').checked;
 
+            // Get date range for primary dataset
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+
             const filteredData = rawCsvData.filter(row => {
                 const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
-                const matchesYear = row.date.getFullYear() === selectedYear;
+                
+                // Handle year/custom range logic
+                let matchesYear = true;
+                let matchesDateRange = true;
+                
+                if (isCustomRange) {
+                    // Use custom date range instead of year
+                    if (startDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
+                    }
+                    if (endDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
+                    }
+                } else {
+                    // Use year filter
+                    matchesYear = row.date.getFullYear() === Number(selectedYear);
+                }
+                
                 return selectedMonths.includes(row.month) &&
                        selectedDays.includes(row.dayOfWeek) &&
                        matchesHotspot &&
-                       matchesYear;
+                       matchesYear &&
+                       matchesDateRange;
             });
 
             if (filteredData.length === 0) {
@@ -905,7 +1149,10 @@
             // Comparison dataset
             const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
             if (comparisonHotspot !== 'none') {
-                const comparisonSelectedYear = Number(document.querySelector('input[name="comparisonYear"]:checked').value);
+                const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
+                const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
+                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
+                
                 const comparisonSelectedMonths = availableMonths.filter(month => 
                     document.getElementById(`comparisonMonth${month}`).checked
                 );
@@ -913,13 +1160,35 @@
                     document.getElementById(`comparisonDay${day}`).checked
                 );
 
+                // Get date range for comparison dataset
+                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
+                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
+
                 const comparisonFilteredData = rawCsvData.filter(row => {
                     const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
-                    const matchesYear = row.date.getFullYear() === comparisonSelectedYear;
+                    
+                    // Handle comparison year/custom range logic
+                    let matchesYear = true;
+                    let matchesDateRange = true;
+                    
+                    if (isComparisonCustomRange) {
+                        // Use custom date range instead of year
+                        if (comparisonStartDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
+                        }
+                        if (comparisonEndDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
+                        }
+                    } else {
+                        // Use year filter
+                        matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
+                    }
+                    
                     return comparisonSelectedMonths.includes(row.month) &&
                            comparisonSelectedDays.includes(row.dayOfWeek) &&
                            matchesHotspot &&
-                           matchesYear;
+                           matchesYear &&
+                           matchesDateRange;
                 });
 
                 if (comparisonFilteredData.length > 0) {
@@ -1035,7 +1304,10 @@
             const comparisonStatsDiv = document.getElementById('comparisonStats');
             
             // Primary dataset filters & data
-            const selectedYear = Number(document.querySelector('input[name="year"]:checked').value);
+            const selectedYearRadio = document.querySelector('input[name="year"]:checked');
+            const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
+            const isCustomRange = selectedYear === 'custom';
+            
             const selectedMonths = availableMonths.filter(month =>
                 document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
             );
@@ -1043,14 +1315,31 @@
                 document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
             );
             const selectedHotspot = document.getElementById('hotspotFilter').value;
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
 
             const filteredData = rawCsvData.filter(row => {
                 const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
-                const matchesYear = row.date.getFullYear() === selectedYear;
+                
+                let matchesYear = true;
+                let matchesDateRange = true;
+                
+                if (isCustomRange) {
+                    if (startDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
+                    }
+                    if (endDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
+                    }
+                } else {
+                    matchesYear = row.date.getFullYear() === Number(selectedYear);
+                }
+                
                 return selectedMonths.includes(row.month) &&
                        selectedDays.includes(row.dayOfWeek) &&
                        matchesHotspot &&
-                       matchesYear;
+                       matchesYear &&
+                       matchesDateRange;
             });
 
             const totalSessions = filteredData.length;
@@ -1070,7 +1359,7 @@
 
                 primaryStatsDiv.innerHTML = `
 Primary Dataset:<br>
-Year: ${selectedYear}<br>
+${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
 Total Sessions: ${totalSessions}<br>
 Unique Days: ${uniqueDays}<br>
 Date Range: ${dateRange}<br>
@@ -1084,7 +1373,7 @@ Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
             } else {
                 primaryStatsDiv.innerHTML = `
 Primary Dataset:<br>
-Year: ${selectedYear}<br>
+${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
 Total Sessions: ${totalSessions}<br>
 Unique Days: ${uniqueDays}<br>
 Date Range: ${dateRange}<br>
@@ -1100,21 +1389,41 @@ Selected Lots: ${hotspotDisplay}<br>
             let comparisonHtml = '';
 
             if (comparisonHotspot !== 'none') {
-                const comparisonSelectedYear = Number(document.querySelector('input[name="comparisonYear"]:checked').value);
+                const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
+                const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
+                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
+                
                 const comparisonSelectedMonths = availableMonths.filter(month => 
                     document.getElementById(`comparisonMonth${month}`) && document.getElementById(`comparisonMonth${month}`).checked
                 );
                 const comparisonSelectedDays = availableDays.filter(day => 
                     document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked
                 );
+                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
+                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
 
                 const comparisonFilteredData = rawCsvData.filter(row => {
                     const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
-                    const matchesYear = row.date.getFullYear() === comparisonSelectedYear;
+                    
+                    let matchesYear = true;
+                    let matchesDateRange = true;
+                    
+                    if (isComparisonCustomRange) {
+                        if (comparisonStartDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
+                        }
+                        if (comparisonEndDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
+                        }
+                    } else {
+                        matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
+                    }
+                    
                     return comparisonSelectedMonths.includes(row.month) &&
                            comparisonSelectedDays.includes(row.dayOfWeek) &&
                            matchesHotspot &&
-                           matchesYear;
+                           matchesYear &&
+                           matchesDateRange;
                 });
 
                 const comparisonTotalSessions = comparisonFilteredData.length;
@@ -1136,7 +1445,7 @@ Selected Lots: ${hotspotDisplay}<br>
 
                     comparisonHtml = `
 Comparison Dataset:<br>
-Year: ${comparisonSelectedYear}<br>
+${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
 Total Sessions: ${comparisonTotalSessions}<br>
 Unique Days: ${comparisonUniqueDays}<br>
 Date Range: ${comparisonDateRange}<br>
@@ -1150,7 +1459,7 @@ Max Cars: ${comparisonGaussianParams.amplitude.toFixed(1)}<br>
                 } else {
                     comparisonHtml = `
 Comparison Dataset:<br>
-Year: ${comparisonSelectedYear}<br>
+${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
 Total Sessions: ${comparisonTotalSessions}<br>
 Unique Days: ${comparisonUniqueDays}<br>
 Date Range: ${comparisonDateRange}<br>
