@@ -30,6 +30,32 @@
             border-color: #2196F3;
             background-color: #f0f8ff;
         }
+        .histogram-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .histogram-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .histogram-controls label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .histogram-controls select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
         .search-section {
             margin: 20px 0;
             padding: 15px;
@@ -202,6 +228,21 @@
         .navbar a:hover {
             background-color: #575757;
         }
+        .histogram-chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            height: 400px;
+            width: calc(100% - 40px);
+            margin-left: 0;
+            margin-right: 0;
+        }
+        #histogramChart {
+            width: 100% !important;
+            height: 100% !important;
+        }
     </style>
 </head>
 <body>
@@ -222,6 +263,32 @@
             <p>Expected columns: HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</p>
             <input type="file" id="fileInput" accept=".csv" />
             <p><small>Or drag and drop a CSV file here</small></p>
+        </div>
+
+        <div class="histogram-section" id="histogramSection">
+            <h3>Parking Usage Overview</h3>
+            <div class="histogram-controls">
+                <div>
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" onchange="updateHistogram()">
+                        <option value="all">All Years (Average)</option>
+                        <option value="2023">2023</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="periodSelect">Group by:</label>
+                    <select id="periodSelect" onchange="updateHistogram()">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                    </select>
+                </div>
+            </div>
+            <div class="histogram-chart-container">
+                <canvas id="histogramChart"></canvas>
+            </div>
         </div>
 
         <div class="search-section" id="searchSection">
@@ -301,6 +368,7 @@
         let currentPage = 1;
         let recordsPerPage = 50;
         let currentChart = null;
+        let histogramChart = null;
 
         function setupFileUpload() {
             const fileInput = document.getElementById('fileInput');
@@ -442,7 +510,9 @@
                 currentPage = 1;
                 displaySummaryTable();
                 updatePagination();
+                generateHistogram();
                 
+                document.getElementById('histogramSection').style.display = 'block';
                 document.getElementById('searchSection').style.display = 'block';
                 document.getElementById('tableSection').style.display = 'block';
 
@@ -497,6 +567,314 @@
             userSummaryData.sort((a, b) => a.plate.localeCompare(b.plate));
             
             console.log(`Generated summary for ${userSummaryData.length} unique license plates`);
+        }
+
+        function getWeekDateRange(weekNumber, year = 2024) {
+            // Create a date for January 1st of the reference year
+            const startOfYear = new Date(year, 0, 1);
+            
+            // Find the first Sunday of the year (week starts on Sunday)
+            const firstSunday = new Date(startOfYear);
+            const dayOfWeek = startOfYear.getDay();
+            if (dayOfWeek !== 0) {
+                firstSunday.setDate(startOfYear.getDate() + (7 - dayOfWeek));
+            }
+            
+            // Calculate the start date of the requested week
+            const weekStart = new Date(firstSunday);
+            weekStart.setDate(firstSunday.getDate() + (weekNumber - 1) * 7);
+            
+            // Calculate the end date of the week (6 days later)
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            // Format the dates
+            const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
+            const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+            const startDay = weekStart.getDate();
+            const endDay = weekEnd.getDate();
+            
+            if (startMonth === endMonth) {
+                return `${startMonth} ${startDay}-${endDay}`;
+            } else {
+                return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+            }
+        }
+
+        function generateHistogram() {
+            const ctx = document.getElementById('histogramChart').getContext('2d');
+            const year = document.getElementById('yearSelect').value;
+            const period = document.getElementById('periodSelect').value;
+            
+            // Destroy existing chart
+            if (histogramChart) {
+                histogramChart.destroy();
+            }
+
+            // Filter data by year and valid dates
+            let filteredData = rawData.filter(record => record.parsedDate);
+            
+            if (year !== 'all') {
+                const selectedYear = parseInt(year);
+                filteredData = filteredData.filter(record => record.parsedDate.getFullYear() === selectedYear);
+            }
+
+            if (filteredData.length === 0) {
+                histogramChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['No Data'],
+                        datasets: [{
+                            label: 'Parking Instances',
+                            data: [0],
+                            backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                            borderColor: 'rgba(76, 175, 80, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `No data available for ${year === 'all' ? 'selected period' : year}`
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            let labels = [];
+            let data = [];
+            let usageMap = {};
+            let yearCounts = {}; // Track how many years contribute to each period
+
+            if (year === 'all') {
+                // For "All Years", calculate averages across years
+                if (period === 'day') {
+                    // Initialize all days of year (1-366)
+                    for (let i = 1; i <= 366; i++) {
+                        usageMap[i] = 0;
+                        yearCounts[i] = new Set(); // Use Set to track unique years
+                    }
+                    
+                    filteredData.forEach(record => {
+                        const date = record.parsedDate;
+                        const dayOfYear = getDayOfYear(date);
+                        usageMap[dayOfYear] = (usageMap[dayOfYear] || 0) + 1;
+                        yearCounts[dayOfYear].add(date.getFullYear());
+                    });
+                    
+                    // Create labels and data for all days (calculate averages)
+                    for (let i = 1; i <= 365; i++) {
+                        const date = new Date(2024, 0, i);
+                        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                        const totalInstances = usageMap[i] || 0;
+                        const yearsWithData = yearCounts[i].size || 1;
+                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100); // Average rounded to 2 decimals
+                    }
+                    
+                } else if (period === 'week') {
+                    // Initialize all weeks (1-53)
+                    for (let i = 1; i <= 53; i++) {
+                        usageMap[i] = 0;
+                        yearCounts[i] = new Set();
+                    }
+                    
+                    filteredData.forEach(record => {
+                        const date = record.parsedDate;
+                        const weekOfYear = getWeekOfYear(date);
+                        usageMap[weekOfYear] = (usageMap[weekOfYear] || 0) + 1;
+                        yearCounts[weekOfYear].add(date.getFullYear());
+                    });
+                    
+                    // Create labels and data for all weeks (calculate averages)
+                    for (let i = 1; i <= 52; i++) {
+                        labels.push(getWeekDateRange(i, 2024)); // Use 2024 as reference year
+                        const totalInstances = usageMap[i] || 0;
+                        const yearsWithData = yearCounts[i].size || 1;
+                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100);
+                    }
+                    
+                } else { // month
+                    // Initialize all months (1-12)
+                    for (let i = 1; i <= 12; i++) {
+                        usageMap[i] = 0;
+                        yearCounts[i] = new Set();
+                    }
+                    
+                    filteredData.forEach(record => {
+                        const date = record.parsedDate;
+                        const month = date.getMonth() + 1;
+                        usageMap[month] = (usageMap[month] || 0) + 1;
+                        yearCounts[month].add(date.getFullYear());
+                    });
+                    
+                    // Create labels and data for all months (calculate averages)
+                    for (let i = 1; i <= 12; i++) {
+                        const date = new Date(2024, i - 1, 1);
+                        labels.push(date.toLocaleDateString('en-US', { month: 'long' }));
+                        const totalInstances = usageMap[i] || 0;
+                        const yearsWithData = yearCounts[i].size || 1;
+                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100);
+                    }
+                }
+            } else {
+                // For specific year, show actual counts
+                const selectedYear = parseInt(year);
+                
+                if (period === 'day') {
+                    // Determine if it's a leap year
+                    const isLeapYear = (selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0);
+                    const daysInYear = isLeapYear ? 366 : 365;
+                    
+                    // Initialize all days for the specific year
+                    for (let i = 1; i <= daysInYear; i++) {
+                        const date = new Date(selectedYear, 0, i);
+                        const key = date.toISOString().split('T')[0];
+                        usageMap[key] = 0;
+                    }
+                    
+                    filteredData.forEach(record => {
+                        const key = record.parsedDate.toISOString().split('T')[0];
+                        usageMap[key] = (usageMap[key] || 0) + 1;
+                    });
+                    
+                    const sortedKeys = Object.keys(usageMap).sort();
+                    labels = sortedKeys.map(key => {
+                        return new Date(key).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        });
+                    });
+                    data = sortedKeys.map(key => usageMap[key]);
+                    
+                } else if (period === 'week') {
+                    filteredData.forEach(record => {
+                        const date = record.parsedDate;
+                        const startOfWeek = new Date(date);
+                        startOfWeek.setDate(date.getDate() - date.getDay());
+                        if (startOfWeek.getFullYear() === selectedYear) {
+                            const key = startOfWeek.toISOString().split('T')[0];
+                            usageMap[key] = (usageMap[key] || 0) + 1;
+                        }
+                    });
+                    
+                    const sortedKeys = Object.keys(usageMap).sort();
+                    labels = sortedKeys.map(key => {
+                        const startDate = new Date(key);
+                        const endDate = new Date(startDate);
+                        endDate.setDate(startDate.getDate() + 6);
+                        
+                        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+                        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+                        const startDay = startDate.getDate();
+                        const endDay = endDate.getDate();
+                        
+                        if (startMonth === endMonth) {
+                            return `${startMonth} ${startDay}-${endDay}`;
+                        } else {
+                            return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+                        }
+                    });
+                    data = sortedKeys.map(key => usageMap[key]);
+                    
+                } else { // month
+                    // Initialize all months for the specific year
+                    for (let i = 0; i < 12; i++) {
+                        const key = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
+                        usageMap[key] = 0;
+                    }
+                    
+                    filteredData.forEach(record => {
+                        const date = record.parsedDate;
+                        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        usageMap[key] = (usageMap[key] || 0) + 1;
+                    });
+                    
+                    const sortedKeys = Object.keys(usageMap).sort();
+                    labels = sortedKeys.map(key => {
+                        const [year, month] = key.split('-');
+                        return new Date(year, month - 1).toLocaleDateString('en-US', { 
+                            month: 'long'
+                        });
+                    });
+                    data = sortedKeys.map(key => usageMap[key]);
+                }
+            }
+
+            histogramChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: year === 'all' ? 'Average Parking Instances' : 'Parking Instances',
+                        data: data,
+                        backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: year === 'all' ? 0.1 : 1
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: period === 'day' ? 90 : 45,
+                                minRotation: period === 'day' ? 90 : 0,
+                                maxTicksLimit: period === 'day' ? 50 : undefined
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Parking Usage ${year === 'all' ? 'All Years (Average)' : year} - Grouped by ${period.charAt(0).toUpperCase() + period.slice(1)}`
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0
+                        }
+                    }
+                }
+            });
+        }
+
+        function getDayOfYear(date) {
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            return Math.floor(diff / oneDay);
+        }
+
+        function getWeekOfYear(date) {
+            const start = new Date(date.getFullYear(), 0, 1);
+            const days = Math.floor((date - start) / (24 * 60 * 60 * 1000));
+            return Math.ceil((days + start.getDay() + 1) / 7);
+        }
+
+        function updateHistogram() {
+            generateHistogram();
         }
 
         function displaySummaryTable() {
@@ -853,7 +1231,7 @@
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error';
             errorDiv.textContent = message;
-            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('searchSection'));
+            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('histogramSection'));
             setTimeout(() => errorDiv.remove(), 5000);
         }
 
