@@ -196,7 +196,7 @@
         
         .date-range label {
             font-size: 12px;
-            min-width: 60px;
+            min-width: 80px;
             font-weight: bold;
         }
         
@@ -334,24 +334,20 @@
                 
                 <div class="filter-row">
                     <div class="filter-group">
-                        <h4>Year / Custom Range</h4>
+                        <h4>Year / Select Date</h4>
                         <div class="radio-group" id="yearFilters">
                             <!-- Year radio buttons will be populated here -->
                         </div>
                     </div>
                     
-                    <!-- ===== CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <!-- ===== CALENDAR DATE SELECTION SECTION (HIDDEN BY DEFAULT) ===== -->
                     <div class="filter-group">
                         <div class="calendar-container hidden" id="primaryCalendarContainer">
                             <button type="button" class="calendar-icon" onclick="toggleDatePicker('primary')">📅</button>
                             <div class="date-range" id="primaryDateRange">
                                 <div class="date-input-row">
-                                    <label for="startDate">Start:</label>
-                                    <input type="date" id="startDate" onchange="applyFilters()">
-                                </div>
-                                <div class="date-input-row">
-                                    <label for="endDate">End:</label>
-                                    <input type="date" id="endDate" onchange="applyFilters()">
+                                    <label for="selectDate">Select Date:</label>
+                                    <input type="date" id="selectDate" onchange="applyFilters()">
                                 </div>
                             </div>
                         </div>
@@ -400,24 +396,20 @@
                 
                 <div class="filter-row">
                     <div class="filter-group">
-                        <h4>Year / Custom Range</h4>
+                        <h4>Year / Select Date</h4>
                         <div class="radio-group" id="comparisonYearFilters">
                             <!-- Comparison year radio buttons will be populated here -->
                         </div>
                     </div>
                     
-                    <!-- ===== COMPARISON CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <!-- ===== COMPARISON CALENDAR DATE SELECTION SECTION (HIDDEN BY DEFAULT) ===== -->
                     <div class="filter-group">
                         <div class="calendar-container hidden" id="comparisonCalendarContainer">
                             <button type="button" class="calendar-icon" onclick="toggleDatePicker('comparison')">📅</button>
                             <div class="date-range" id="comparisonDateRange">
                                 <div class="date-input-row">
-                                    <label for="comparisonStartDate">Start:</label>
-                                    <input type="date" id="comparisonStartDate" onchange="applyFilters()">
-                                </div>
-                                <div class="date-input-row">
-                                    <label for="comparisonEndDate">End:</label>
-                                    <input type="date" id="comparisonEndDate" onchange="applyFilters()">
+                                    <label for="comparisonSelectDate">Select Date:</label>
+                                    <input type="date" id="comparisonSelectDate" onchange="applyFilters()">
                                 </div>
                             </div>
                         </div>
@@ -608,8 +600,7 @@
         }
 
         function clearPrimaryDateInputs() {
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
+            document.getElementById('selectDate').value = '';
             
             const primaryDateRange = document.getElementById('primaryDateRange');
             if (primaryDateRange.classList.contains('show')) {
@@ -618,8 +609,7 @@
         }
 
         function clearComparisonDateInputs() {
-            document.getElementById('comparisonStartDate').value = '';
-            document.getElementById('comparisonEndDate').value = '';
+            document.getElementById('comparisonSelectDate').value = '';
             
             const comparisonDateRange = document.getElementById('comparisonDateRange');
             if (comparisonDateRange.classList.contains('show')) {
@@ -627,10 +617,10 @@
             }
         }
 
-        // ===== NEW FUNCTIONS FOR CUSTOM RANGE RADIO FUNCTIONALITY =====
+        // ===== NEW FUNCTIONS FOR SELECT DATE RADIO FUNCTIONALITY =====
         function handleYearRadioChange(type, value) {
-            if (value === 'custom') {
-                // Show calendar icon when Custom Range is selected
+            if (value === 'selectdate') {
+                // Show calendar icon when Select Date is selected
                 const calendarContainer = document.getElementById(type + 'CalendarContainer');
                 calendarContainer.classList.remove('hidden');
             } else {
@@ -663,19 +653,13 @@
             const minDate = dates[0].toISOString().split('T')[0];
             const maxDate = dates[dates.length - 1].toISOString().split('T')[0];
 
-            const startDateElem = document.getElementById('startDate');
-            const endDateElem = document.getElementById('endDate');
-            startDateElem.min = minDate;
-            startDateElem.max = maxDate;
-            endDateElem.min = minDate;
-            endDateElem.max = maxDate;
+            const selectDateElem = document.getElementById('selectDate');
+            selectDateElem.min = minDate;
+            selectDateElem.max = maxDate;
 
-            const comparisonStartDateElem = document.getElementById('comparisonStartDate');
-            const comparisonEndDateElem = document.getElementById('comparisonEndDate');
-            comparisonStartDateElem.min = minDate;
-            comparisonStartDateElem.max = maxDate;
-            comparisonEndDateElem.min = minDate;
-            comparisonEndDateElem.max = maxDate;
+            const comparisonSelectDateElem = document.getElementById('comparisonSelectDate');
+            comparisonSelectDateElem.min = minDate;
+            comparisonSelectDateElem.max = maxDate;
         }
 
         Chart.register({
@@ -944,7 +928,7 @@
         }
 
         function setupFilters() {
-            // Primary year filters with Custom Range option
+            // Primary year filters with Select Date option
             const yearFiltersDiv = document.getElementById('yearFilters');
             yearFiltersDiv.innerHTML = '';
             
@@ -959,16 +943,16 @@
                 yearFiltersDiv.appendChild(div);
             });
             
-            // Add Custom Range radio button
+            // Add Select Date radio button
             const customDiv = document.createElement('div');
             customDiv.className = 'radio-item';
             customDiv.innerHTML = `
-                <input type="radio" name="year" id="yearCustom" value="custom" onchange="handleYearRadioChange('primary', 'custom')">
-                <label for="yearCustom">Custom Range</label>
+                <input type="radio" name="year" id="yearSelectDate" value="selectdate" onchange="handleYearRadioChange('primary', 'selectdate')">
+                <label for="yearSelectDate">Select Date</label>
             `;
             yearFiltersDiv.appendChild(customDiv);
 
-            // Comparison year filters with Custom Range option
+            // Comparison year filters with Select Date option
             const comparisonYearFiltersDiv = document.getElementById('comparisonYearFilters');
             comparisonYearFiltersDiv.innerHTML = '';
             
@@ -983,12 +967,12 @@
                 comparisonYearFiltersDiv.appendChild(div);
             });
             
-            // Add Comparison Custom Range radio button
+            // Add Comparison Select Date radio button
             const comparisonCustomDiv = document.createElement('div');
             comparisonCustomDiv.className = 'radio-item';
             comparisonCustomDiv.innerHTML = `
-                <input type="radio" name="comparisonYear" id="comparisonYearCustom" value="custom" onchange="handleYearRadioChange('comparison', 'custom')">
-                <label for="comparisonYearCustom">Custom Range</label>
+                <input type="radio" name="comparisonYear" id="comparisonYearSelectDate" value="selectdate" onchange="handleYearRadioChange('comparison', 'selectdate')">
+                <label for="comparisonYearSelectDate">Select Date</label>
             `;
             comparisonYearFiltersDiv.appendChild(comparisonCustomDiv);
 
@@ -1175,11 +1159,18 @@
             document.getElementById('comparisonWeekendToggle').checked = weekendChecked;
         }
 
+        // ===== FIXED DATE COMPARISON FUNCTION =====
+        function isSameDate(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
         function applyFilters() {
-            // Primary dataset - check if custom range is selected
+            // Primary dataset - check if select date is selected
             const selectedYearRadio = document.querySelector('input[name="year"]:checked');
             const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
-            const isCustomRange = selectedYear === 'custom';
+            const isSelectDate = selectedYear === 'selectdate';
             
             const selectedMonths = availableMonths.filter(month => 
                 document.getElementById(`month${month}`).checked
@@ -1190,26 +1181,27 @@
             const selectedHotspot = document.getElementById('hotspotFilter').value;
             const estimateTrue = document.getElementById('estimateTrue').checked;
 
-            // Get date range for primary dataset
-            const startDateInput = document.getElementById('startDate').value;
-            const endDateInput = document.getElementById('endDate').value;
+            // Get selected date for primary dataset
+            const selectDateInput = document.getElementById('selectDate').value;
 
             const filteredData = rawCsvData.filter(row => {
                 const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
                 
-                // Handle year/custom range logic
+                // Handle year/select date logic
                 let matchesYear = true;
-                let matchesDateRange = true;
+                let matchesDate = true;
                 
-                if (isCustomRange) {
-                    // Use custom date range instead of year
-                    if (startDateInput) {
-                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
-                    }
-                    if (endDateInput) {
-                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
-                    }
-                } else {
+                if (isSelectDate) {
+            // Use specific date selection - only data from that exact date
+            if (selectDateInput) {
+                const [year, month, day] = selectDateInput.split('-');
+                const selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                matchesDate = isSameDate(row.date, selectedDate);
+            } else {
+                // If no date selected in select date mode, show no data
+                matchesDate = false;
+            }
+        } else {
                     // Use year filter
                     matchesYear = row.date.getFullYear() === Number(selectedYear);
                 }
@@ -1218,7 +1210,7 @@
                        selectedDays.includes(row.dayOfWeek) &&
                        matchesHotspot &&
                        matchesYear &&
-                       matchesDateRange;
+                       matchesDate;
             });
 
             if (filteredData.length === 0) {
@@ -1233,7 +1225,7 @@
             if (comparisonHotspot !== 'none') {
                 const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
                 const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
-                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
+                const isComparisonSelectDate = comparisonSelectedYear === 'selectdate';
                 
                 const comparisonSelectedMonths = availableMonths.filter(month => 
                     document.getElementById(`comparisonMonth${month}`).checked
@@ -1242,26 +1234,28 @@
                     document.getElementById(`comparisonDay${day}`).checked
                 );
 
-                // Get date range for comparison dataset
-                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
-                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
+                // Get selected date for comparison dataset
+                const comparisonSelectDateInput = document.getElementById('comparisonSelectDate').value;
 
                 const comparisonFilteredData = rawCsvData.filter(row => {
                     const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
                     
-                    // Handle comparison year/custom range logic
+                    // Handle comparison year/select date logic
                     let matchesYear = true;
-                    let matchesDateRange = true;
+                    let matchesDate = true;
                     
-                    if (isComparisonCustomRange) {
-                        // Use custom date range instead of year
-                        if (comparisonStartDateInput) {
-                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
-                        }
-                        if (comparisonEndDateInput) {
-                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
-                        }
-                    } else {
+                    if (isComparisonSelectDate) {
+    // Use specific date selection - only data from that exact date
+    if (comparisonSelectDateInput) {
+        const [compYear, compMonth, compDay] = comparisonSelectDateInput.split('-');
+        const selectedDate = new Date(parseInt(compYear), parseInt(compMonth) - 1, parseInt(compDay));
+        matchesDate = isSameDate(row.date, selectedDate);
+    } else {
+        // If no date selected in select date mode, show no data
+        matchesDate = false;
+    }
+}
+ else {
                         // Use year filter
                         matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
                     }
@@ -1270,7 +1264,7 @@
                            comparisonSelectedDays.includes(row.dayOfWeek) &&
                            matchesHotspot &&
                            matchesYear &&
-                           matchesDateRange;
+                           matchesDate;
                 });
 
                 if (comparisonFilteredData.length > 0) {
@@ -1388,7 +1382,7 @@
             // Primary dataset filters & data
             const selectedYearRadio = document.querySelector('input[name="year"]:checked');
             const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
-            const isCustomRange = selectedYear === 'custom';
+            const isSelectDate = selectedYear === 'selectdate';
             
             const selectedMonths = availableMonths.filter(month =>
                 document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
@@ -1397,21 +1391,21 @@
                 document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
             );
             const selectedHotspot = document.getElementById('hotspotFilter').value;
-            const startDateInput = document.getElementById('startDate').value;
-            const endDateInput = document.getElementById('endDate').value;
+            const selectDateInput = document.getElementById('selectDate').value;
 
             const filteredData = rawCsvData.filter(row => {
                 const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
                 
                 let matchesYear = true;
-                let matchesDateRange = true;
+                let matchesDate = true;
                 
-                if (isCustomRange) {
-                    if (startDateInput) {
-                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
-                    }
-                    if (endDateInput) {
-                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
+                if (isSelectDate) {
+                    if (selectDateInput) {
+                        const [year, month, day] = selectDateInput.split('-');
+                        const selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        matchesDate = isSameDate(row.date, selectedDate);
+                    } else {
+                        matchesDate = false;
                     }
                 } else {
                     matchesYear = row.date.getFullYear() === Number(selectedYear);
@@ -1421,7 +1415,7 @@
                        selectedDays.includes(row.dayOfWeek) &&
                        matchesHotspot &&
                        matchesYear &&
-                       matchesDateRange;
+                       matchesDate;
             });
 
             const totalSessions = filteredData.length;
@@ -1432,39 +1426,44 @@
             const dateRange = getDateRange(filteredData);
             const avgSessionsPerDay = uniqueDays > 0 ? (totalSessions / uniqueDays).toFixed(1) : '0.0';
 
-            if (gaussianParams) {
-                const peakHour = Math.floor(gaussianParams.mean / 60);
-                const peakMin = Math.round(gaussianParams.mean % 60);
-                const peakTimeStr = `${peakHour.toString().padStart(2,'0')}:${peakMin.toString().padStart(2,'0')}`;
-                const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
-                const rSquared = calculateRSquared().toFixed(3);
+// Calculate max cars and peak time from raw data
+const maxCars = Math.max(...processedData.map(d => d.normalizedCount));
+const peakDataPoint = processedData.find(d => d.normalizedCount === maxCars);
+const peakTimeStr = peakDataPoint ? peakDataPoint.time : 'N/A';
 
-                primaryStatsDiv.innerHTML = `
+if (gaussianParams) {
+    const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
+    const rSquared = calculateRSquared().toFixed(3);
+
+    primaryStatsDiv.innerHTML = `
 Primary Dataset:<br>
-${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
+${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
 Total Sessions: ${totalSessions}<br>
 Unique Days: ${uniqueDays}<br>
 Date Range: ${dateRange}<br>
 Average Sessions per Day: ${avgSessionsPerDay}<br>
 Selected Lots: ${hotspotDisplay}<br>
 Peak Occupancy Time: ${peakTimeStr}<br>
-Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
+Max Cars: ${maxCars.toFixed(1)}<br>
 <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
 <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
                 `;
-            } else {
-                primaryStatsDiv.innerHTML = `
+} else {
+    primaryStatsDiv.innerHTML = `
 Primary Dataset:<br>
-${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
+${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
 Total Sessions: ${totalSessions}<br>
 Unique Days: ${uniqueDays}<br>
 Date Range: ${dateRange}<br>
 Average Sessions per Day: ${avgSessionsPerDay}<br>
 Selected Lots: ${hotspotDisplay}<br>
+Peak Occupancy Time: ${peakTimeStr}<br>
+Max Cars: ${maxCars.toFixed(1)}<br>
 <br>
 <strong>Insufficient data for Normal Distribution</strong>
                 `;
-            }
+}
+
 
             // Comparison dataset filters & data
             const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
@@ -1473,7 +1472,7 @@ Selected Lots: ${hotspotDisplay}<br>
             if (comparisonHotspot !== 'none') {
                 const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
                 const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
-                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
+                const isComparisonSelectDate = comparisonSelectedYear === 'selectdate';
                 
                 const comparisonSelectedMonths = availableMonths.filter(month => 
                     document.getElementById(`comparisonMonth${month}`) && document.getElementById(`comparisonMonth${month}`).checked
@@ -1481,21 +1480,20 @@ Selected Lots: ${hotspotDisplay}<br>
                 const comparisonSelectedDays = availableDays.filter(day => 
                     document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked
                 );
-                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
-                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
+                const comparisonSelectDateInput = document.getElementById('comparisonSelectDate').value;
 
                 const comparisonFilteredData = rawCsvData.filter(row => {
                     const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
                     
                     let matchesYear = true;
-                    let matchesDateRange = true;
+                    let matchesDate = true;
                     
-                    if (isComparisonCustomRange) {
-                        if (comparisonStartDateInput) {
-                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
-                        }
-                        if (comparisonEndDateInput) {
-                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
+                    if (isComparisonSelectDate) {
+                        if (comparisonSelectDateInput) {
+                            const selectedDate = new Date(comparisonSelectDateInput);
+                            matchesDate = isSameDate(row.date, selectedDate);
+                        } else {
+                            matchesDate = false;
                         }
                     } else {
                         matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
@@ -1505,7 +1503,7 @@ Selected Lots: ${hotspotDisplay}<br>
                            comparisonSelectedDays.includes(row.dayOfWeek) &&
                            matchesHotspot &&
                            matchesYear &&
-                           matchesDateRange;
+                           matchesDate;
                 });
 
                 const comparisonTotalSessions = comparisonFilteredData.length;
@@ -1518,39 +1516,44 @@ Selected Lots: ${hotspotDisplay}<br>
                     ? (comparisonTotalSessions / comparisonUniqueDays).toFixed(1)
                     : '0.0';
 
-                if (comparisonGaussianParams) {
-                    const cPeakHour = Math.floor(comparisonGaussianParams.mean / 60);
-                    const cPeakMin = Math.round(comparisonGaussianParams.mean % 60);
-                    const cPeakTimeStr = `${cPeakHour.toString().padStart(2,'0')}:${cPeakMin.toString().padStart(2,'0')}`;
-                    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
-                    const cRSquared = calculateComparisonRSquared().toFixed(3);
+                // Calculate max cars and peak time from raw comparison data
+const comparisonMaxCars = comparisonProcessedData.length > 0 ? Math.max(...comparisonProcessedData.map(d => d.normalizedCount)) : 0;
+const comparisonPeakDataPoint = comparisonProcessedData.find(d => d.normalizedCount === comparisonMaxCars);
+const cPeakTimeStr = comparisonPeakDataPoint ? comparisonPeakDataPoint.time : 'N/A';
 
-                    comparisonHtml = `
+if (comparisonGaussianParams) {
+    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
+    const cRSquared = calculateComparisonRSquared().toFixed(3);
+
+    comparisonHtml = `
 Comparison Dataset:<br>
-${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
+${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
 Total Sessions: ${comparisonTotalSessions}<br>
 Unique Days: ${comparisonUniqueDays}<br>
 Date Range: ${comparisonDateRange}<br>
 Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
 Selected Lots: ${comparisonHotspotDisplay}<br>
 Peak Occupancy Time: ${cPeakTimeStr}<br>
-Max Cars: ${comparisonGaussianParams.amplitude.toFixed(1)}<br>
+Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
 <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
 <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
                     `;
-                } else {
-                    comparisonHtml = `
+} else {
+    comparisonHtml = `
 Comparison Dataset:<br>
-${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
+${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
 Total Sessions: ${comparisonTotalSessions}<br>
 Unique Days: ${comparisonUniqueDays}<br>
 Date Range: ${comparisonDateRange}<br>
 Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
 Selected Lots: ${comparisonHotspotDisplay}<br>
+Peak Occupancy Time: ${cPeakTimeStr}<br>
+Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
 <br>
 <strong>Insufficient data for Normal Distribution</strong>
                     `;
-                }
+}
+
             }
 
             comparisonStatsDiv.innerHTML = comparisonHtml;
@@ -1761,5 +1764,3 @@ Selected Lots: ${comparisonHotspotDisplay}<br>
     </script>
 </body>
 </html>
-
-
