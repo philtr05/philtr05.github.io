@@ -2,44 +2,192 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GO Train Connection Chart Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GO Train Connection Chart Maker | Phil's Transit Toolkit</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 0px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  .navbar {
-      background-color: #333;
-      overflow: hidden;
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .navbar {
+      background: #fff;
+      border-bottom: 1px solid #e9ecef;
+      padding: 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .navbar-content {
       display: flex;
       justify-content: center;
-      margin-top: -8px;
-      margin-bottom: 10px ;
-      margin-left: -8px; 
-      margin-right: -8px;
+      align-items: center;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .navbar a {
-      color: white;
-      padding: 14px 20px;
-      text-decoration: none;  
+      color: #495057;
+      padding: 20px 28px;
+      text-decoration: none;
       text-align: center;
       display: block;
-      transition: background 0.3s;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
     }
 
     .navbar a:hover {
-      background-color: #575757;
+      color: #212529;
+      border-bottom-color: #007bff;
+      background: #f8f9fa;
     }
 
     .navbar a.active {
-      background-color: #04AA6D;
+      color: #007bff;
+      border-bottom-color: #007bff;
+      background: #f8f9fa;
     }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .page-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #212529;
+    }
+
+    .page-header p {
+      font-size: 1.1rem;
+      color: #6c757d;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .upload-section {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      border: 1px solid #e9ecef;
+      text-align: center;
+    }
+
+    .upload-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      color: #212529;
+      font-weight: 600;
+    }
+
+    .upload-section p {
+      color: #6c757d;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      opacity: 0;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .file-input-button {
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .file-input-button:hover {
+      background: #0056b3;
+      transform: translateY(-1px);
+    }
+
+    .download-btn {
+      background: #28a745;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 10px;
+    }
+
+    .download-btn:hover {
+      background: #1e7e34;
+      transform: translateY(-1px);
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin-top: 15px;
+      border: 1px solid #f5c6cb;
+      display: none;
+    }
+
+    .grids-section {
+      margin-top: 30px;
+    }
+
+    /* ORIGINAL TABLE FORMATTING - PRESERVED FOR COPY/PASTE */
     h2 {
       margin-top: 40px;
+      font-size: 1.4rem;
+      color: #212529;
+      font-weight: 600;
     }
+
     table {
       border-collapse: collapse;
       width: 100%;
@@ -48,267 +196,391 @@
       font-family: 'Bahnschrift', sans-serif;
       font-size: 10pt;
     }
+
     th, td {
       border: 1px solid #333;
       padding: 6px 10px;
       text-align: center;
     }
+
     th {
       background-color: #ddd;
     }
+
     .yellow {
       background-color: #FFFF00;
       color: black;
     }
+
     .green {
       background-color: #00B050;
       color: black;
     }
+
     .blue {
       background-color: #00B0F0;
       color: black;
     }
-    #downloadBtn {
+    /* END ORIGINAL TABLE FORMATTING */
+
+    .footer {
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .footer p {
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+
+    .no-data {
+      text-align: center;
+      color: #6c757d;
+      font-style: italic;
+      padding: 40px;
+      background: #f8f9fa;
+      border-radius: 8px;
       margin-top: 20px;
     }
-    .container {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 1200px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    @media (max-width: 768px) {
+      .navbar a {
+        padding: 16px 20px;
+        font-size: 0.95rem;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .page-header h1 {
+        font-size: 2rem;
+      }
+
+      .upload-section {
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .navbar-content {
+        flex-direction: column;
+      }
+
+      .navbar a {
+        width: 100%;
+        border-bottom: none;
+        border-right: 2px solid transparent;
+      }
+
+      .navbar a:hover,
+      .navbar a.active {
+        border-right-color: #007bff;
+        border-bottom-color: transparent;
+      }
+
+      .page-header h1 {
+        font-size: 1.8rem;
+      }
     }
   </style>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="navbar">
+  <div class="container">
+    <nav class="navbar">
+      <div class="navbar-content">
         <a href="index.html">Home</a>
         <a href="Bus visualizer 2.0.html">Platforming</a>
-        <a href="GO Train maker.html">GO Train Chart</a>
-        <a href="Parkingtool.html">Parking Usage Tool</a>
-        <a href="Parkingusertool.html">Parking User Search</a>
-    </div>
-<div class="container">
-<h1>GO Train Connection Chart Maker</h1>
-<p>Upload a CSV file with columns: <b>Train number, stop, route, depart, arrive</b>.</p>
-<input type="file" id="csvFile" accept=".csv,text/csv" />
-<button id="downloadBtn" style="display:none;">Download XLSX</button>
-<div id="error" style="color:red; margin-top:10px;"></div>
-<div id="grids"></div>
-</div>  
-<script>
-let allSheetData = {};  // Store data per sheet title
+        <a href="GO Train maker.html" class="active">GO Train Chart</a>
+        <a href="Parkingtool.html">Parking Usage</a>
+        <a href="Parkingusertool.html">Parking Search</a>
+      </div>
+    </nav>
 
-function timeToMinutes(t) {
-  t = t.trim();
-  const ampmMatch = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (ampmMatch) {
-    let h = parseInt(ampmMatch[1], 10);
-    const m = parseInt(ampmMatch[2], 10);
-    const ampm = ampmMatch[3].toUpperCase();
-    if (ampm === 'PM' && h !== 12) h += 12;
-    if (ampm === 'AM' && h === 12) h = 0;
-    return h * 60 + m;
-  }
-  const match24 = t.match(/(\d{1,2}):(\d{2})/);
-  if (match24) {
-    const h = parseInt(match24[1], 10);
-    const m = parseInt(match24[2], 10);
-    return h * 60 + m;
-  }
-  return null;
-}
+    <main class="main-content">
+      <header class="page-header">
+        <h1>GO Train Connection Chart Maker</h1>
+        <p>Create comprehensive connection charts showing bus and GO Train transfer opportunities with color-coded timing analysis</p>
+      </header>
 
-function colorCode(diff) {
-  if (diff > 30) return '';
-  if (diff >= 15) return 'blue';
-  if (diff >= 5) return 'green';
-  if (diff >= 1) return 'yellow';
-  return '';
-}
+      <section class="upload-section">
+        <h3>Upload Your Transit Data</h3>
+        <p>Upload a CSV file with columns: <strong>Train number, stop, route, depart, arrive</strong></p>
+        
+        <div class="file-input-wrapper">
+          <input type="file" id="csvFile" accept=".csv,text/csv" />
+          <div class="file-input-button">Choose CSV File</div>
+        </div>
+        
+        <button id="downloadBtn" class="download-btn" style="display:none;">Download Excel File</button>
+        
+        <div id="error" class="error-message"></div>
+      </section>
 
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  let firstLine = lines[0];
-  if (firstLine.charCodeAt(0) === 0xFEFF) firstLine = firstLine.slice(1);
-  const headers = firstLine.split(',').map(h => h.trim());
-  const headerMap = {};
-  headers.forEach((h, i) => headerMap[h.toLowerCase()] = i);
+      <section class="grids-section">
+        <div id="grids"></div>
+        <div id="noData" class="no-data" style="display:none;">
+          Upload a CSV file to generate connection charts
+        </div>
+      </section>
+    </main>
 
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const cols = lines[i].split(',');
-    const obj = {};
-    ['train number', 'stop', 'route', 'depart', 'arrive'].forEach(field => {
-      const idx = headerMap[field];
-      obj[field] = idx !== undefined ? (cols[idx] || '').trim() : '';
-    });
-    rows.push(obj);
-  }
-  return rows;
-}
+    <footer class="footer">
+      <p>GO Train Connection Chart Maker | Created by Philippe Tremblay with AI assistance</p>
+    </footer>
+  </div>
 
-function createGrid(title, trains, buses, isDeparture) {
-  const gridDiv = document.getElementById('grids');
-  const busRoutes = [...new Set(buses.map(b => b.route))].sort();
-  const sortedTrains = [...trains].sort((a, b) => timeToMinutes((isDeparture ? a.depart : a.arrive)) - timeToMinutes((isDeparture ? b.depart : b.arrive)));
+  <script>
+    let allSheetData = {};  // Store data per sheet title
 
-  const trainNums = sortedTrains.map(t => t['train number']);
-  const timeRow = sortedTrains.map(t => isDeparture ? t.depart : t.arrive);
+    function timeToMinutes(t) {
+      t = t.trim();
+      const ampmMatch = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (ampmMatch) {
+        let h = parseInt(ampmMatch[1], 10);
+        const m = parseInt(ampmMatch[2], 10);
+        const ampm = ampmMatch[3].toUpperCase();
+        if (ampm === 'PM' && h !== 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return h * 60 + m;
+      }
+      const match24 = t.match(/(\d{1,2}):(\d{2})/);
+      if (match24) {
+        const h = parseInt(match24[1], 10);
+        const m = parseInt(match24[2], 10);
+        return h * 60 + m;
+      }
+      return null;
+    }
 
-  const table = document.createElement('table');
-  const titleEl = document.createElement('h2');
-  titleEl.textContent = title;
-  gridDiv.appendChild(titleEl);
+    function colorCode(diff) {
+      if (diff > 30) return '';
+      if (diff >= 15) return 'blue';
+      if (diff >= 5) return 'green';
+      if (diff >= 1) return 'yellow';
+      return '';
+    }
 
-  const thead = document.createElement('thead');
-  const row1 = document.createElement('tr');
-  row1.appendChild(document.createElement('th')).textContent = 'Bus Route';
-  row1.appendChild(document.createElement('th')).textContent = 'Train';
-  trainNums.forEach(num => {
-    const th = document.createElement('th');
-    th.textContent = num;
-    row1.appendChild(th);
-  });
-  thead.appendChild(row1);
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      let firstLine = lines[0];
+      if (firstLine.charCodeAt(0) === 0xFEFF) firstLine = firstLine.slice(1);
+      const headers = firstLine.split(',').map(h => h.trim());
+      const headerMap = {};
+      headers.forEach((h, i) => headerMap[h.toLowerCase()] = i);
 
-  const row2 = document.createElement('tr');
-  row2.appendChild(document.createElement('td'));
-  row2.appendChild(document.createElement('td')).textContent = 'Depart:';
-  timeRow.forEach(time => {
-    const td = document.createElement('td');
-    td.textContent = time;
-    row2.appendChild(td);
-  });
-  thead.appendChild(row2);
-  table.appendChild(thead);
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols = lines[i].split(',');
+        const obj = {};
+        ['train number', 'stop', 'route', 'depart', 'arrive'].forEach(field => {
+          const idx = headerMap[field];
+          obj[field] = idx !== undefined ? (cols[idx] || '').trim() : '';
+        });
+        rows.push(obj);
+      }
+      return rows;
+    }
 
-  const tbody = document.createElement('tbody');
-  const exportData = [];
+    function createGrid(title, trains, buses, isDeparture) {
+      const gridDiv = document.getElementById('grids');
+      const busRoutes = [...new Set(buses.map(b => b.route))].sort();
+      const sortedTrains = [...trains].sort((a, b) => timeToMinutes((isDeparture ? a.depart : a.arrive)) - timeToMinutes((isDeparture ? b.depart : b.arrive)));
 
-  busRoutes.forEach(route => {
-    const rowObj = { 'Bus Route': route };
-    const tr = document.createElement('tr');
-    const routeCell = document.createElement('td');
-    routeCell.textContent = route;
-    tr.appendChild(routeCell);
-    tr.appendChild(document.createElement('td'));
+      if (sortedTrains.length === 0) return;
 
-    let hasConnection = false;
+      const trainNums = sortedTrains.map(t => t['train number']);
+      const timeRow = sortedTrains.map(t => isDeparture ? t.depart : t.arrive);
 
-    trainNums.forEach((trainNum, i) => {
-      const t = sortedTrains[i];
-      const busMatches = buses.filter(b => b.route === route && b.stop === t.stop);
-      let highlight = '';
-      let busTimeText = '';
-      busMatches.forEach(bus => {
-        const busTime = isDeparture ? timeToMinutes(bus.arrive) : timeToMinutes(bus.depart);
-        const trainTime = timeToMinutes(isDeparture ? t.depart : t.arrive);
-        const rawBusTime = isDeparture ? bus.arrive : bus.depart;
-        if (busTime !== null && trainTime !== null) {
-          const diff = isDeparture ? (trainTime - busTime) : (busTime - trainTime);
-          const cc = colorCode(diff);
-          if (cc && (!highlight || ['yellow', 'green', 'blue'].indexOf(cc) > ['yellow', 'green', 'blue'].indexOf(highlight))) {
-            highlight = cc;
-            busTimeText = rawBusTime;
-          }
+      const table = document.createElement('table');
+      const titleEl = document.createElement('h2');
+      titleEl.textContent = title;
+      gridDiv.appendChild(titleEl);
+
+      const thead = document.createElement('thead');
+      const row1 = document.createElement('tr');
+      row1.appendChild(document.createElement('th')).textContent = 'Bus Route';
+      row1.appendChild(document.createElement('th')).textContent = 'Train';
+      trainNums.forEach(num => {
+        const th = document.createElement('th');
+        th.textContent = num;
+        row1.appendChild(th);
+      });
+      thead.appendChild(row1);
+
+      const row2 = document.createElement('tr');
+      row2.appendChild(document.createElement('td'));
+      row2.appendChild(document.createElement('td')).textContent = 'Depart:';
+      timeRow.forEach(time => {
+        const td = document.createElement('td');
+        td.textContent = time;
+        row2.appendChild(td);
+      });
+      thead.appendChild(row2);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      const exportData = [];
+
+      busRoutes.forEach(route => {
+        const rowObj = { 'Bus Route': route };
+        const tr = document.createElement('tr');
+        const routeCell = document.createElement('td');
+        routeCell.textContent = route;
+        tr.appendChild(routeCell);
+        tr.appendChild(document.createElement('td'));
+
+        let hasConnection = false;
+
+        trainNums.forEach((trainNum, i) => {
+          const t = sortedTrains[i];
+          const busMatches = buses.filter(b => b.route === route && b.stop === t.stop);
+          let highlight = '';
+          let busTimeText = '';
+          busMatches.forEach(bus => {
+            const busTime = isDeparture ? timeToMinutes(bus.arrive) : timeToMinutes(bus.depart);
+            const trainTime = timeToMinutes(isDeparture ? t.depart : t.arrive);
+            const rawBusTime = isDeparture ? bus.arrive : bus.depart;
+            if (busTime !== null && trainTime !== null) {
+              const diff = isDeparture ? (trainTime - busTime) : (busTime - trainTime);
+              const cc = colorCode(diff);
+              if (cc && (!highlight || ['yellow', 'green', 'blue'].indexOf(cc) > ['yellow', 'green', 'blue'].indexOf(highlight))) {
+                highlight = cc;
+                busTimeText = rawBusTime;
+              }
+            }
+          });
+          const td = document.createElement('td');
+          td.textContent = busTimeText;
+          if (highlight) td.className = highlight;
+          tr.appendChild(td);
+          rowObj[trainNum] = busTimeText;
+          if (busTimeText) hasConnection = true;
+        });
+
+        if (hasConnection) {
+          tbody.appendChild(tr);
+          exportData.push(rowObj);
         }
       });
-      const td = document.createElement('td');
-      td.textContent = busTimeText;
-      if (highlight) td.className = highlight;
-      tr.appendChild(td);
-      rowObj[trainNum] = busTimeText;
-      if (busTimeText) hasConnection = true;
-    });
 
-    if (hasConnection) {
-      tbody.appendChild(tr);
-      exportData.push(rowObj);
+      table.appendChild(tbody);
+      gridDiv.appendChild(table);
+      allSheetData[title] = exportData.length ? { headers: trainNums, data: exportData } : null;
     }
-  });
 
-  table.appendChild(tbody);
-  gridDiv.appendChild(table);
-  allSheetData[title] = exportData.length ? { headers: trainNums, data: exportData } : null;
-}
+    function parseExcelTime(t) {
+      const match = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (!match) return null;
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3].toUpperCase();
+      if (ampm === "PM" && hours !== 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      return (hours * 60 + minutes) / (24 * 60);
+    }
 
-function parseExcelTime(t) {
-  const match = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return null;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const ampm = match[3].toUpperCase();
-  if (ampm === "PM" && hours !== 12) hours += 12;
-  if (ampm === "AM" && hours === 12) hours = 0;
-  return (hours * 60 + minutes) / (24 * 60);
-}
+    function exportToXLSX(allSheets) {
+      const wb = XLSX.utils.book_new();
+      for (const [sheetName, sheet] of Object.entries(allSheets)) {
+        if (!sheet) continue;
+        const { headers, data } = sheet;
+        const wsData = [];
+        const fullHeaders = ['Bus Route', ...headers];
+        wsData.push(fullHeaders);
+        data.forEach(row => {
+          const values = fullHeaders.map(h => row[h] || '');
+          wsData.push(values);
+        });
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-function exportToXLSX(allSheets) {
-  const wb = XLSX.utils.book_new();
-  for (const [sheetName, sheet] of Object.entries(allSheets)) {
-    if (!sheet) continue;
-    const { headers, data } = sheet;
-    const wsData = [];
-    const fullHeaders = ['Bus Route', ...headers];
-    wsData.push(fullHeaders);
-    data.forEach(row => {
-      const values = fullHeaders.map(h => row[h] || '');
-      wsData.push(values);
-    });
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    for (let R = 1; R < wsData.length; R++) {
-      for (let C = 1; C < fullHeaders.length; C++) {
-        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-        const cellVal = ws[cellRef] && ws[cellRef].v;
-        if (typeof cellVal === 'string' && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(cellVal)) {
-          const timeNum = parseExcelTime(cellVal);
-          if (timeNum !== null) {
-            ws[cellRef].v = timeNum;
-            ws[cellRef].t = 'n';
-            ws[cellRef].z = 'h:mm AM/PM';
+        for (let R = 1; R < wsData.length; R++) {
+          for (let C = 1; C < fullHeaders.length; C++) {
+            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+            const cellVal = ws[cellRef] && ws[cellRef].v;
+            if (typeof cellVal === 'string' && /\d{1,2}:\d{2}\s*(AM|PM)/i.test(cellVal)) {
+              const timeNum = parseExcelTime(cellVal);
+              if (timeNum !== null) {
+                ws[cellRef].v = timeNum;
+                ws[cellRef].t = 'n';
+                ws[cellRef].z = 'h:mm AM/PM';
+              }
+            }
           }
         }
+
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
       }
+      XLSX.writeFile(wb, "GO_train_connections.xlsx");
     }
 
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  }
-  XLSX.writeFile(wb, "transit_connections.xlsx");
-}
-
-document.getElementById('csvFile').addEventListener('change', e => {
-  const file = e.target.files[0];
-  document.getElementById('error').textContent = '';
-  document.getElementById('grids').innerHTML = '';
-  document.getElementById('downloadBtn').style.display = 'none';
-  allSheetData = {};
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = evt => {
-    try {
-      const data = parseCSV(evt.target.result);
-      const goRoutes = data.filter(r => r.route === 'GO Train North' || r.route === 'GO Train South');
-      const buses = data.filter(r => r.route !== 'GO Train North' && r.route !== 'GO Train South');
-      createGrid('GO Train Depart - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.depart), buses, true);
-      createGrid('GO Train Depart - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.depart), buses, true);
-      createGrid('GO Train Arrive - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.arrive), buses, false);
-      createGrid('GO Train Arrive - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.arrive), buses, false);
-      document.getElementById('downloadBtn').style.display = 'inline-block';
-      document.getElementById('downloadBtn').onclick = () => exportToXLSX(allSheetData);
-    } catch (err) {
-      document.getElementById('error').textContent = err.message;
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
     }
-  };
-  reader.readAsText(file);
-});
-</script>
+
+    function hideError() {
+      const errorDiv = document.getElementById('error');
+      errorDiv.style.display = 'none';
+    }
+
+    document.getElementById('csvFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      hideError();
+      document.getElementById('grids').innerHTML = '';
+      document.getElementById('downloadBtn').style.display = 'none';
+      document.getElementById('noData').style.display = 'none';
+      allSheetData = {};
+      
+      if (!file) {
+        document.getElementById('noData').style.display = 'block';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          const data = parseCSV(evt.target.result);
+          
+          if (data.length === 0) {
+            showError('No data found in the CSV file');
+            return;
+          }
+
+          const goRoutes = data.filter(r => r.route === 'GO Train North' || r.route === 'GO Train South');
+          const buses = data.filter(r => r.route !== 'GO Train North' && r.route !== 'GO Train South');
+          
+          if (goRoutes.length === 0) {
+            showError('No GO Train data found. Make sure your CSV contains routes named "GO Train North" or "GO Train South"');
+            return;
+          }
+
+          createGrid('GO Train Depart - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.depart), buses, true);
+          createGrid('GO Train Depart - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.depart), buses, true);
+          createGrid('GO Train Arrive - Allandale', goRoutes.filter(r => r.stop.toLowerCase().includes('allandale') && r.arrive), buses, false);
+          createGrid('GO Train Arrive - Barrie South', goRoutes.filter(r => r.stop.toLowerCase().includes('barrie south') && r.arrive), buses, false);
+          
+          const hasData = Object.values(allSheetData).some(sheet => sheet !== null);
+          if (hasData) {
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+            document.getElementById('downloadBtn').onclick = () => exportToXLSX(allSheetData);
+          } else {
+            document.getElementById('noData').style.display = 'block';
+          }
+        } catch (err) {
+          showError('Error processing file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Initialize
+    document.getElementById('noData').style.display = 'block';
+  </script>
 </body>
 </html>
-
-
-
