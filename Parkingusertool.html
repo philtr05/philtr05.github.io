@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>User Parking Behavior Analysis</title>
+    <title>Parking Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
             background-color: #f5f5f5;
-            margin: 0;
         }
         .container {
             max-width: 1400px;
@@ -30,172 +29,213 @@
             border-color: #2196F3;
             background-color: #f0f8ff;
         }
-        .histogram-section {
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
+        #fileInput {
+            margin: 10px 0;
         }
-        .histogram-controls {
+        .controls {
+            margin-bottom: 20px;
             display: flex;
             gap: 20px;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .histogram-controls label {
-            font-weight: bold;
-            margin-right: 5px;
-        }
-        .histogram-controls select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .search-section {
-            margin: 20px 0;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 6px;
-            display: none;
         }
-        .search-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .search-controls input, .search-controls select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .search-controls button {
-            padding: 8px 16px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .search-controls button:hover {
-            background-color: #1976D2;
-        }
-        .table-section {
-            margin: 20px 0;
-            display: none;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .pagination button {
-            padding: 8px 12px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .pagination button:hover:not(:disabled) {
-            background-color: #1976D2;
-        }
-        .pagination button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .pagination span {
-            font-weight: bold;
-        }
-        .summary-table, .user-details-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .summary-table th, .summary-table td,
-        .user-details-table th, .user-details-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .summary-table th, .user-details-table th {
-            background-color: #f2f2f2;
-            cursor: pointer;
-            position: relative;
-            padding-right: 30px; /* Extra space for sort arrow */
-            min-width: 100px; /* Minimum width to prevent overlap */
-        }
-        .summary-table th:hover, .user-details-table th:hover {
-            background-color: #e8e8e8;
-        }
-        .summary-table tr:hover, .user-details-table tr:hover {
-            background-color: #e3f2fd !important;
-            transition: background-color 0.2s ease;
-        }
-        .summary-table tbody tr {
-            cursor: pointer;
-        }
-        .sort-arrow {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-        }
-        .user-details {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: white;
+        .filter-panel {
+            flex: 1;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
             padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 10px;
+            background-color: #f0f8ff;
         }
-        .stat-card h4 {
-            margin: 0 0 10px 0;
-            color: #333;
+        .comparison-panel {
+            flex: 1;
+            width: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f8fff8;
         }
-        .stat-value {
-            font-size: 24px;
+        .panel-title {
+            margin: 0 0 15px 0;
+            font-size: 16px;
             font-weight: bold;
+        }
+        .panel-title.primary {
             color: #2196F3;
         }
-        .chart-container {
-            margin: 20px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .panel-title.comparison {
+            color: #4CAF50;
         }
-        .chart-controls {
-            margin-bottom: 15px;
+        .filter-row {
             display: flex;
-            gap: 10px;
-            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: flex-start;
         }
-        .chart-controls select {
-            padding: 5px;
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, auto);
+        }
+        .filter-group h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+        }
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 5px;
+        }
+        .month-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 5px;
+        }
+        .radio-group {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .checkbox-item, .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+        .checkbox-item input[type="checkbox"], .radio-item input[type="radio"] {
+            transform: scale(1.1);
+        }
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            transform: scale(1.2);
+        }
+        select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            width: 150px;
+        }
+        select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        /* ===== CALENDAR ICON AND DATE RANGE STYLES ===== */
+        .calendar-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .calendar-icon {
+            background: none;
+            border: 1px solid #2196F3;
+            border-radius: 4px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #2196F3;
+            transition: all 0.2s;
+        }
+        
+        .calendar-icon:hover {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .date-range {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            background: white;
             border: 1px solid #ccc;
             border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+        }
+        
+        .date-range.show {
+            display: flex;
+        }
+        
+        .date-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input[type="date"] {
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 13px;
+            width: 140px;
+        }
+        
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        .date-range label {
+            font-size: 12px;
+            min-width: 60px;
+            font-weight: bold;
+        }
+        
+        /* Hide calendar container by default */
+        .calendar-container.hidden {
+            display: none;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 20px;
+        }
+        .combined-stats {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .stats-column {
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stats-primary {
+            background-color: #e3f2fd;
+        }
+        .stats-comparison {
+            background-color: #e8f5e8;
+        }
+        .data-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            font-size: 14px;
         }
         .error {
             color: #d32f2f;
@@ -204,18 +244,31 @@
             border-radius: 4px;
             margin: 10px 0;
         }
-        .highlight-row {
-            background-color: #e3f2fd !important;
+        button {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
         .navbar {
             background-color: #333;
             overflow: hidden;
             display: flex;
             justify-content: center;
-            margin-top: -20px;
-            margin-bottom: 10px ;
-            margin-left: -20px;
-            margin-right: -20px;
+            margin-top: -30px;
+            margin-bottom: 10px;
+            margin-left: -30px;
+            margin-right: -30px;
         }
         .navbar a {
             color: white;
@@ -228,20 +281,29 @@
         .navbar a:hover {
             background-color: #575757;
         }
-        .histogram-chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            height: 400px;
-            width: calc(100% - 40px);
-            margin-left: 0;
-            margin-right: 0;
+        .navbar a.active {
+            background-color: #04AA6D;
         }
-        #histogramChart {
-            width: 100% !important;
-            height: 100% !important;
+        .content {
+            padding: 40px;
+            text-align: center;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .export-csv {
+            background-color: #4CAF50 !important;
+        }
+        .export-png {
+            background-color: #FF9800 !important;
+        }
+        .export-csv:hover {
+            background-color: #45a049 !important;
+        }
+        .export-png:hover {
+            background-color: #f57c00 !important;
         }
     </style>
 </head>
@@ -253,122 +315,456 @@
         <a href="Parkingtool.html">Parking Usage Tool</a>
         <a href="Parkingusertool.html">Parking User Search</a>
     </div>
-
     <div class="container">
-        <h1>User Parking Behavior Analysis</h1>
-        <p>Analyze parking patterns by license plate and user behavior</p>
-
+        <h1>Parking Analysis Tool</h1>
+        <p>Created by Philippe Tremblay / AI</p>
         <div class="upload-section" id="uploadSection">
-            <h3>Upload CSV File</h3>
-            <p>Expected columns: HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</p>
+            <h3>Parking Data Upload</h3>
+            <p>🔄 <em>Attempting to auto-load default dataset...</em></p>
+            <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
+            <p>Example: 2024-01-15, 09:30, 2.5, 1, LotA</p>
             <input type="file" id="fileInput" accept=".csv" />
             <p><small>Or drag and drop a CSV file here</small></p>
         </div>
 
-        <div class="histogram-section" id="histogramSection">
-            <h3>Parking Usage Overview</h3>
-            <div class="histogram-controls">
-                <div>
-                    <label for="yearSelect">Year:</label>
-                    <select id="yearSelect" onchange="updateHistogram()">
-                        <option value="all">All Years (Average)</option>
-                        <option value="2023">2023</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
+        <div class="controls" id="controls" style="display: none;">
+            <!-- Primary Dataset Panel -->
+            <div class="filter-panel">
+                <h3 class="panel-title primary">Primary Dataset</h3>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Year / Custom Range</h4>
+                        <div class="radio-group" id="yearFilters">
+                            <!-- Year radio buttons will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- ===== CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <div class="filter-group">
+                        <div class="calendar-container hidden" id="primaryCalendarContainer">
+                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('primary')">📅</button>
+                            <div class="date-range" id="primaryDateRange">
+                                <div class="date-input-row">
+                                    <label for="startDate">Start:</label>
+                                    <input type="date" id="startDate" onchange="applyFilters()">
+                                </div>
+                                <div class="date-input-row">
+                                    <label for="endDate">End:</label>
+                                    <input type="date" id="endDate" onchange="applyFilters()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Lot</h4>
+                        <select id="hotspotFilter" onchange="applyFilters()">
+                            <option value="all">All Hotspots</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Day Type</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
+                                <label for="weekdayToggle">Weekdays</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
+                                <label for="weekendToggle">Weekends</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label for="periodSelect">Group by:</label>
-                    <select id="periodSelect" onchange="updateHistogram()">
-                        <option value="day">Day</option>
-                        <option value="week">Week</option>
-                        <option value="month">Month</option>
-                    </select>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Months</h4>
+                        <button onclick="toggleAllMonths()">Toggle All</button>
+                        <div class="month-checkboxes" id="monthFilters"></div>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Days of Week</h4>
+                        <button onclick="toggleAllDays()">Toggle All</button>
+                        <div class="checkbox-group" id="dayFilters"></div>
+                    </div>
                 </div>
             </div>
-            <div class="histogram-chart-container">
-                <canvas id="histogramChart"></canvas>
+
+            <!-- Comparison Dataset Panel -->
+            <div class="comparison-panel" id="comparisonPanel" style="display: none;">
+                <h3 class="panel-title comparison">Comparison Dataset</h3>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Year / Custom Range</h4>
+                        <div class="radio-group" id="comparisonYearFilters">
+                            <!-- Comparison year radio buttons will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- ===== COMPARISON CALENDAR DATE RANGE SECTION (HIDDEN BY DEFAULT) ===== -->
+                    <div class="filter-group">
+                        <div class="calendar-container hidden" id="comparisonCalendarContainer">
+                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('comparison')">📅</button>
+                            <div class="date-range" id="comparisonDateRange">
+                                <div class="date-input-row">
+                                    <label for="comparisonStartDate">Start:</label>
+                                    <input type="date" id="comparisonStartDate" onchange="applyFilters()">
+                                </div>
+                                <div class="date-input-row">
+                                    <label for="comparisonEndDate">End:</label>
+                                    <input type="date" id="comparisonEndDate" onchange="applyFilters()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Compare With</h4>
+                        <select id="comparisonHotspotFilter" onchange="applyFilters()">
+                            <option value="none">No Comparison</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <h4>Day Type</h4>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="comparisonWeekdayToggle" checked onchange="toggleComparisonWeekdays()">
+                                <label for="comparisonWeekdayToggle">Weekdays</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="comparisonWeekendToggle" checked onchange="toggleComparisonWeekends()">
+                                <label for="comparisonWeekendToggle">Weekends</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Months</h4>
+                        <button onclick="toggleAllComparisonMonths()">Toggle All</button>
+                        <div class="month-checkboxes" id="comparisonMonthFilters"></div>
+                    </div>
+                </div>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <h4>Days of Week</h4>
+                        <button onclick="toggleAllComparisonDays()">Toggle All</button>
+                        <div class="checkbox-group" id="comparisonDayFilters"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="search-section" id="searchSection">
-            <h3>Search Users</h3>
-            <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="Enter license plate, user ID, or vehicle make...">
-                <button onclick="searchUser()">Search</button>
-                <button onclick="clearSearch()">Clear</button>
+        <div class="control-buttons" id="controlButtons" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
+                <label for="estimateTrue">Estimate True Value (x4)</label>
             </div>
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="exportCSV()" class="export-csv">Export Data (CSV)</button>
+            <button onclick="exportPNG()" class="export-png">Export Chart (PNG)</button>
         </div>
 
-        <div class="table-section" id="tableSection">
-            <h3>User Summary</h3>
-            <table class="summary-table" id="summaryTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTableByColumn('plate')">License Plate <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('user')">User ID <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('make')">Vehicle Make <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('instances')">Parking Instances <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('totalTime')">Total Time (hrs) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('totalSpend')">Total Spend ($) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('avgSpend')">Avg Spend/Session ($) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('avgTime')">Avg Time/Session (hrs) <span class="sort-arrow"></span></th>
-                    </tr>
-                </thead>
-                <tbody id="summaryTableBody">
-                </tbody>
-            </table>
-            
-            <div class="pagination">
-                <button id="prevBtn" onclick="previousPage()">Previous</button>
-                <span id="pageInfo">Page 1 of 1</span>
-                <button id="nextBtn" onclick="nextPage()">Next</button>
-            </div>
+        <div class="chart-container" style="display: none;" id="chartContainer">
+            <canvas id="parkingChart"></canvas>
         </div>
 
-        <div class="user-details" id="userDetails">
-            <h3 id="userDetailsTitle">User Details</h3>
-            <div class="stats-grid" id="statsGrid">
+        <div class="combined-stats" id="combinedStats" style="display: none;">
+            <div class="stats-column stats-primary">
+                <strong>Primary Dataset Stats:</strong>
+                <div id="primaryStats"></div>
             </div>
-            
-            <div class="chart-container">
-                <h4>Usage Pattern</h4>
-                <div class="chart-controls">
-                    <label>View by:</label>
-                    <select id="chartPeriod" onchange="updateChart()">
-                        <option value="month">Month</option>
-                        <option value="year">Year</option>
-                    </select>
-                </div>
-                <canvas id="usageChart" width="400" height="200"></canvas>
+            <div class="stats-column stats-comparison" id="comparisonStatsColumn" style="display: none;">
+                <strong>Comparison Dataset Stats:</strong>
+                <div id="comparisonStats"></div>
             </div>
-            
-            <h4>Individual Parking Sessions</h4>
-            <table class="user-details-table" id="userDetailsTable">
-                <thead>
-                    <tr>
-                        <th>Date/Time</th>
-                        <th>HotSpot #</th>
-                        <th>City #</th>
-                        <th>Duration (hrs)</th>
-                        <th>Total ($)</th>
-                    </tr>
-                </thead>
-                <tbody id="userDetailsTableBody">
-                </tbody>
-            </table>
         </div>
     </div>
 
     <script>
-        let rawData = [];
-        let userSummaryData = [];
-        let currentSortColumn = 'plate';
-        let currentSortOrder = 'asc';
-        let currentPage = 1;
-        let recordsPerPage = 50;
-        let currentChart = null;
-        let histogramChart = null;
+        let chart;
+        let rawCsvData = [];
+        let processedData = [];
+        let comparisonProcessedData = [];
+        let gaussianParams = null;
+        let comparisonGaussianParams = null;
+        let availableMonths = [];
+        let availableDays = [];
+        let availableHotspots = [];
+        let availableYears = [];
+        let hotspotToNameMap = {};
+
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const dayNames = [
+            'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+        ];
+
+        // ===== AUTO-LOAD CSV FUNCTION =====
+        function autoLoadCSV() {
+            // Show loading message
+            const uploadSection = document.getElementById('uploadSection');
+            const originalContent = uploadSection.innerHTML;
+            uploadSection.innerHTML = `
+                <h3>Loading Default Dataset...</h3>
+                <p>Attempting to load "UserData2023-2025.csv" from repository...</p>
+                <div style="margin: 10px 0;">
+                    <div style="width: 100%; background-color: #f0f0f0; border-radius: 4px;">
+                        <div id="loadingBar" style="width: 0%; height: 20px; background-color: #2196F3; border-radius: 4px; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            `;
+
+            // Animate loading bar
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += 10;
+                document.getElementById('loadingBar').style.width = progress + '%';
+                if (progress >= 90) clearInterval(loadingInterval);
+            }, 100);
+
+            fetch('./UserData2023-2025.csv')
+                .then(response => {
+                    clearInterval(loadingInterval);
+                    document.getElementById('loadingBar').style.width = '100%';
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    // Parse the CSV using PapaParse
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        dynamicTyping: true,
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                throw new Error('CSV parsing errors: ' + results.errors.map(e => e.message).join(', '));
+                            }
+                            
+                            // Update upload section to show success
+                            uploadSection.innerHTML = `
+                                <hr style="margin: 15px 0;">
+                                <h4>Upload Different File (Optional)</h4>
+                                <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
+                                <input type="file" id="fileInput" accept=".csv" />
+                                <p><small>Or drag and drop a different CSV file here</small></p>
+                            `;
+                            
+                            // Re-setup file upload for new input
+                            setupFileUpload();
+                            
+                            // Process the loaded data
+                            processCsvData(results.data);
+                        },
+                        error: function(error) {
+                            throw new Error('Error parsing CSV: ' + error.message);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.warn('Could not load default CSV file:', error.message);
+                    
+                    // Restore original upload interface
+                    uploadSection.innerHTML = originalContent;
+                    setupFileUpload();
+                    
+                    // Show info message about manual upload
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;';
+                    infoDiv.innerHTML = `
+                        <strong>ℹ️ Default file not found</strong><br>
+                        Could not automatically load "UserData2023-2025.csv".<br>
+                        Please upload your CSV file manually using the form above.
+                    `;
+                    uploadSection.appendChild(infoDiv);
+                });
+        }
+
+        // ===== CALENDAR DATE PICKER FUNCTIONS =====
+        function toggleDatePicker(type) {
+            const dateRange = document.getElementById(type + 'DateRange');
+            if (dateRange.classList.contains('show')) {
+                dateRange.classList.remove('show');
+            } else {
+                // Hide any other open date pickers
+                document.querySelectorAll('.date-range.show').forEach(el => {
+                    el.classList.remove('show');
+                });
+                dateRange.classList.add('show');
+            }
+        }
+
+        function clearPrimaryDateInputs() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            
+            const primaryDateRange = document.getElementById('primaryDateRange');
+            if (primaryDateRange.classList.contains('show')) {
+                primaryDateRange.classList.remove('show');
+            }
+        }
+
+        function clearComparisonDateInputs() {
+            document.getElementById('comparisonStartDate').value = '';
+            document.getElementById('comparisonEndDate').value = '';
+            
+            const comparisonDateRange = document.getElementById('comparisonDateRange');
+            if (comparisonDateRange.classList.contains('show')) {
+                comparisonDateRange.classList.remove('show');
+            }
+        }
+
+        // ===== NEW FUNCTIONS FOR CUSTOM RANGE RADIO FUNCTIONALITY =====
+        function handleYearRadioChange(type, value) {
+            if (value === 'custom') {
+                // Show calendar icon when Custom Range is selected
+                const calendarContainer = document.getElementById(type + 'CalendarContainer');
+                calendarContainer.classList.remove('hidden');
+            } else {
+                // Hide calendar icon and clear dates when any year is selected
+                const calendarContainer = document.getElementById(type + 'CalendarContainer');
+                calendarContainer.classList.add('hidden');
+                
+                // Clear date inputs
+                if (type === 'primary') {
+                    clearPrimaryDateInputs();
+                } else {
+                    clearComparisonDateInputs();
+                }
+            }
+            applyFilters();
+        }
+
+        // Close date pickers when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.calendar-container')) {
+                document.querySelectorAll('.date-range.show').forEach(el => {
+                    el.classList.remove('show');
+                });
+            }
+        });
+
+        function setupDateRangeInputs() {
+            if (rawCsvData.length === 0) return;
+            const dates = rawCsvData.map(row => row.date).sort((a, b) => a - b);
+            const minDate = dates[0].toISOString().split('T')[0];
+            const maxDate = dates[dates.length - 1].toISOString().split('T')[0];
+
+            const startDateElem = document.getElementById('startDate');
+            const endDateElem = document.getElementById('endDate');
+            startDateElem.min = minDate;
+            startDateElem.max = maxDate;
+            endDateElem.min = minDate;
+            endDateElem.max = maxDate;
+
+            const comparisonStartDateElem = document.getElementById('comparisonStartDate');
+            const comparisonEndDateElem = document.getElementById('comparisonEndDate');
+            comparisonStartDateElem.min = minDate;
+            comparisonStartDateElem.max = maxDate;
+            comparisonEndDateElem.min = minDate;
+            comparisonEndDateElem.max = maxDate;
+        }
+
+        Chart.register({
+            id: 'businessHoursShading',
+            beforeDraw(chart, args, options) {
+                const {ctx, chartArea: {left, right, top, bottom}, scales: {x}} = chart;
+
+                if (!x || !chart.data.labels.length) return;
+
+                const getXPos = (label) => x.getPixelForValue(label);
+
+                const startBusiness = getXPos("09:00");
+                const endBusiness = getXPos("17:00");
+
+                ctx.save();
+                ctx.fillStyle = "rgba(100, 100, 100, 0.15)";
+                ctx.fillRect(left, top, startBusiness - left, bottom - top);
+                ctx.fillRect(endBusiness, top, right - endBusiness, bottom - top);
+                ctx.restore();
+            }
+        });
+
+        function gaussian(x, amplitude, mean, stdDev) {
+            const exponent = -0.5 * Math.pow((x - mean) / stdDev, 2);
+            return amplitude * Math.exp(exponent);
+        }
+
+        function fitGaussian(xData, yData) {
+            if (xData.length < 3) return null;
+
+            const maxY = Math.max(...yData);
+            const maxIndex = yData.indexOf(maxY);
+            const initialMean = xData[maxIndex];
+            
+            const halfMax = maxY / 2;
+            let leftHalf = 0, rightHalf = 0;
+            
+            for (let i = 0; i < yData.length; i++) {
+                if (yData[i] >= halfMax) {
+                    leftHalf = xData[i];
+                    break;
+                }
+            }
+            
+            for (let i = yData.length - 1; i >= 0; i--) {
+                if (yData[i] >= halfMax) {
+                    rightHalf = xData[i];
+                    break;
+                }
+            }
+            
+            const initialStdDev = Math.abs(rightHalf - leftHalf) / 2.35;
+
+            let bestParams = {
+                amplitude: maxY,
+                mean: initialMean,
+                stdDev: Math.max(initialStdDev, 30)
+            };
+            let bestError = Infinity;
+
+            const meanRange = 60;
+            const stdDevRange = 60;
+            const steps = 15;
+
+            for (let i = 0; i < steps; i++) {
+                for (let j = 0; j < steps; j++) {
+                    for (let k = 0; k < steps; k++) {
+                        const amplitude = maxY * (0.5 + 0.8 * i / steps);
+                        const mean = initialMean + (-meanRange + 2 * meanRange * j / steps);
+                        const stdDev = Math.max(20, initialStdDev + (-stdDevRange + 2 * stdDevRange * k / steps));
+
+                        let error = 0;
+                        for (let idx = 0; idx < xData.length; idx++) {
+                            const predicted = gaussian(xData[idx], amplitude, mean, stdDev);
+                            const residual = yData[idx] - predicted;
+                            error += residual * residual;
+                        }
+
+                        if (error < bestError) {
+                            bestError = error;
+                            bestParams = { amplitude, mean, stdDev };
+                        }
+                    }
+                }
+            }
+
+            return bestParams;
+        }
 
         function setupFileUpload() {
             const fileInput = document.getElementById('fileInput');
@@ -411,12 +807,13 @@
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                dynamicTyping: false,
+                dynamicTyping: true,
                 complete: function(results) {
                     if (results.errors.length > 0) {
                         showError('CSV parsing errors: ' + results.errors.map(e => e.message).join(', '));
                         return;
                     }
+                    
                     processCsvData(results.data);
                 },
                 error: function(error) {
@@ -427,12 +824,10 @@
 
         function processCsvData(data) {
             try {
-                const expectedColumns = ['hotspot #', 'city #', 'date', 'time', 'user', 'plate', 'make', 'amount', 'tax', 'total', 'length'];
-                
                 const cleanData = data.filter(row => {
                     const keys = Object.keys(row).map(k => k.toLowerCase().trim());
-                    const requiredColumns = expectedColumns.filter(col => col !== 'amount' && col !== 'tax');
-                    return requiredColumns.every(col => keys.includes(col));
+                    return keys.includes('date') && keys.includes('time') && keys.includes('length') && 
+                           keys.includes('hotspot #') && keys.includes('lot name');
                 }).map(row => {
                     const normalizedRow = {};
                     Object.keys(row).forEach(key => {
@@ -443,800 +838,926 @@
                 });
 
                 if (cleanData.length === 0) {
-                    showError('No valid data found. Please ensure CSV has required columns.');
+                    showError('No valid data found. Please ensure CSV has columns: Date, Time, Length, Hotspot #, Lot Name');
                     return;
                 }
 
-                rawData = cleanData.map((row, index) => {
-                    try {
-                        const parseNumber = (value, fieldName) => {
-                            if (value === null || value === undefined || value === '') {
-                                return 0;
-                            }
-                            
-                            const cleanValue = value.toString().replace(/[$,\s]/g, '');
-                            const parsed = parseFloat(cleanValue);
-                            
-                            if (isNaN(parsed)) {
-                                console.warn(`Row ${index + 1}: Invalid ${fieldName}: ${value}, using 0`);
-                                return 0;
-                            }
-                            return parsed;
-                        };
+                hotspotToNameMap = {};
+                cleanData.forEach(row => {
+                    const hotspot = row['hotspot #'] ? row['hotspot #'].toString().trim() : '';
+                    const lotName = row['lot name'] ? row['lot name'].toString().trim() : '';
+                    if (hotspot && lotName && !hotspotToNameMap[hotspot]) {
+                        hotspotToNameMap[hotspot] = lotName;
+                    }
+                });
 
-                        // Parse date for better handling
-                        const dateStr = row['date']?.toString().trim() || '';
-                        const timeStr = row['time']?.toString().trim() || '';
-                        let parsedDate = null;
+                rawCsvData = cleanData.map((row, index) => {
+                    try {
+                        let dateStr = row.date;
+                        if (typeof dateStr === 'number') {
+                            dateStr = new Date((dateStr - 25569) * 86400 * 1000).toISOString().split('T')[0];
+                        }
+                        const date = new Date(dateStr);
                         
-                        if (dateStr) {
-                            try {
-                                parsedDate = new Date(dateStr);
-                                if (isNaN(parsedDate.getTime())) {
-                                    parsedDate = null;
-                                }
-                            } catch (e) {
-                                parsedDate = null;
-                            }
+                        if (isNaN(date.getTime())) {
+                            throw new Error(`Invalid date: ${row.date}`);
+                        }
+
+                        let timeStr = row.time;
+                        if (typeof timeStr === 'number') {
+                            const hours = Math.floor(timeStr);
+                            const minutes = Math.round((timeStr - hours) * 60);
+                            timeStr = `${hours}:${minutes}`;
+                        }
+                        
+                        timeStr = timeStr.toString().trim();
+                        let hours, minutes;
+                        
+                        if (timeStr.includes(':')) {
+                            const timeParts = timeStr.split(':');
+                            hours = parseInt(timeParts[0]);
+                            minutes = parseInt(timeParts[1]);
+                        } else {
+                            const timeNum = parseFloat(timeStr);
+                            hours = Math.floor(timeNum);
+                            minutes = Math.round((timeNum - hours) * 60);
+                        }
+
+                        if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                            throw new Error(`Invalid time: ${row.time}`);
+                        }
+
+                        let length = row.length;
+                        if (typeof length === 'string') {
+                            length = parseFloat(length.replace(',', '.'));
+                        } else {
+                            length = parseFloat(length);
+                        }
+                        
+                        if (isNaN(length) || length <= 0 || length > 24) {
+                            throw new Error(`Invalid length: ${row.length} (must be between 0 and 24 hours)`);
+                        }
+
+                        const hotspot = row['hotspot #'] ? row['hotspot #'].toString().trim() : '';
+                        if (!hotspot) {
+                            throw new Error(`Invalid hotspot #: ${row['hotspot #']}`);
                         }
 
                         return {
-                            hotspot: row['hotspot #']?.toString().trim() || '',
-                            city: row['city #']?.toString().trim() || '',
-                            startTime: dateStr,
-                            time: timeStr,
-                            parsedDate: parsedDate,
-                            user: row['user']?.toString().trim() || '',
-                            plate: row['plate']?.toString().trim().toUpperCase() || '',
-                            make: row['make']?.toString().trim() || '',
-                            amount: parseNumber(row['amount'], 'amount'),
-                            tax: parseNumber(row['tax'], 'tax'),
-                            total: parseNumber(row['total'], 'total'),
-                            length: parseNumber(row['length'], 'length')
+                            date: date,
+                            hours: hours,
+                            minutes: minutes,
+                            length: length,
+                            dayOfWeek: date.getDay(),
+                            month: date.getMonth(),
+                            hotspot: hotspot,
+                            lotName: hotspotToNameMap[hotspot] || 'Unknown'
                         };
                     } catch (error) {
                         console.warn(`Row ${index + 1}: ${error.message}`);
                         return null;
                     }
-                }).filter(row => row !== null && row.plate && row.user);
+                }).filter(row => row !== null);
 
-                if (rawData.length === 0) {
-                    showError('No valid parking records found after processing.');
+                if (rawCsvData.length === 0) {
+                    showError('No valid parking sessions found after processing.');
                     return;
                 }
 
-                console.log(`Processed ${rawData.length} valid records`);
-                generateUserSummary();
-                currentPage = 1;
-                displaySummaryTable();
-                updatePagination();
-                generateHistogram();
-                
-                document.getElementById('histogramSection').style.display = 'block';
-                document.getElementById('searchSection').style.display = 'block';
-                document.getElementById('tableSection').style.display = 'block';
+                availableMonths = [...new Set(rawCsvData.map(row => row.month))].sort((a, b) => a - b);
+                availableDays = [...new Set(rawCsvData.map(row => row.dayOfWeek))].sort((a, b) => a - b);
+                availableHotspots = [...new Set(rawCsvData.map(row => row.hotspot))].sort();
+                availableYears = [...new Set(rawCsvData.map(row => row.date.getFullYear()))].sort();
+
+                setupFilters();
+                setupDateRangeInputs();
+                applyFilters();
+
+                document.getElementById('controls').style.display = 'flex';
+                document.getElementById('comparisonPanel').style.display = 'block';
+                document.getElementById('controlButtons').style.display = 'flex';
+                document.getElementById('chartContainer').style.display = 'block';
+                document.getElementById('combinedStats').style.display = 'grid';
 
             } catch (error) {
                 showError('Error processing data: ' + error.message);
             }
         }
 
-        function generateUserSummary() {
-            const userMap = new Map();
+        function setupFilters() {
+            // Primary year filters with Custom Range option
+            const yearFiltersDiv = document.getElementById('yearFilters');
+            yearFiltersDiv.innerHTML = '';
+            
+            // Add year radio buttons
+            availableYears.forEach(year => {
+                const div = document.createElement('div');
+                div.className = 'radio-item';
+                div.innerHTML = `
+                    <input type="radio" name="year" id="year${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="handleYearRadioChange('primary', '${year}')">
+                    <label for="year${year}">${year}</label>
+                `;
+                yearFiltersDiv.appendChild(div);
+            });
+            
+            // Add Custom Range radio button
+            const customDiv = document.createElement('div');
+            customDiv.className = 'radio-item';
+            customDiv.innerHTML = `
+                <input type="radio" name="year" id="yearCustom" value="custom" onchange="handleYearRadioChange('primary', 'custom')">
+                <label for="yearCustom">Custom Range</label>
+            `;
+            yearFiltersDiv.appendChild(customDiv);
 
-            rawData.forEach(record => {
-                const key = record.plate;
-                
-                if (!userMap.has(key)) {
-                    userMap.set(key, {
-                        plate: record.plate,
-                        user: record.user,
-                        make: record.make,
-                        instances: 0,
-                        totalTime: 0,
-                        totalSpend: 0,
-                        sessions: []
-                    });
-                }
+            // Comparison year filters with Custom Range option
+            const comparisonYearFiltersDiv = document.getElementById('comparisonYearFilters');
+            comparisonYearFiltersDiv.innerHTML = '';
+            
+            // Add comparison year radio buttons
+            availableYears.forEach(year => {
+                const div = document.createElement('div');
+                div.className = 'radio-item';
+                div.innerHTML = `
+                    <input type="radio" name="comparisonYear" id="comparisonYear${year}" value="${year}" ${year === availableYears[0] ? 'checked' : ''} onchange="handleYearRadioChange('comparison', '${year}')">
+                    <label for="comparisonYear${year}">${year}</label>
+                `;
+                comparisonYearFiltersDiv.appendChild(div);
+            });
+            
+            // Add Comparison Custom Range radio button
+            const comparisonCustomDiv = document.createElement('div');
+            comparisonCustomDiv.className = 'radio-item';
+            comparisonCustomDiv.innerHTML = `
+                <input type="radio" name="comparisonYear" id="comparisonYearCustom" value="custom" onchange="handleYearRadioChange('comparison', 'custom')">
+                <label for="comparisonYearCustom">Custom Range</label>
+            `;
+            comparisonYearFiltersDiv.appendChild(comparisonCustomDiv);
 
-                const userData = userMap.get(key);
-                userData.instances++;
-                userData.totalTime += record.length;
-                userData.totalSpend += record.total;
-                userData.sessions.push(record);
-                
-                if (!userData.user && record.user) {
-                    userData.user = record.user;
-                }
-                if (!userData.make && record.make) {
-                    userData.make = record.make;
-                }
+            // Primary filters
+            const monthFiltersDiv = document.getElementById('monthFilters');
+            monthFiltersDiv.innerHTML = '';
+            availableMonths.forEach(monthNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="month${monthNum}" checked onchange="applyFilters()">
+                    <label for="month${monthNum}">${monthNames[monthNum]}</label>
+                `;
+                monthFiltersDiv.appendChild(div);
             });
 
-            userSummaryData = Array.from(userMap.values()).map(user => {
-                const avgSpend = user.instances > 0 ? user.totalSpend / user.instances : 0;
-                const avgTime = user.instances > 0 ? user.totalTime / user.instances : 0;
-                
-                return {
-                    ...user,
-                    avgSpend: avgSpend,
-                    avgTime: avgTime
-                };
+            const dayFiltersDiv = document.getElementById('dayFilters');
+            dayFiltersDiv.innerHTML = '';
+            availableDays.forEach(dayNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="day${dayNum}" checked onchange="updateDayTypeCheckboxes(); applyFilters()">
+                    <label for="day${dayNum}">${dayNames[dayNum]}</label>
+                `;
+                dayFiltersDiv.appendChild(div);
             });
 
-            userSummaryData.sort((a, b) => a.plate.localeCompare(b.plate));
-            
-            console.log(`Generated summary for ${userSummaryData.length} unique license plates`);
+            // Comparison filters
+            const comparisonMonthFiltersDiv = document.getElementById('comparisonMonthFilters');
+            comparisonMonthFiltersDiv.innerHTML = '';
+            availableMonths.forEach(monthNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="comparisonMonth${monthNum}" checked onchange="applyFilters()">
+                    <label for="comparisonMonth${monthNum}">${monthNames[monthNum]}</label>
+                `;
+                comparisonMonthFiltersDiv.appendChild(div);
+            });
+
+            const comparisonDayFiltersDiv = document.getElementById('comparisonDayFilters');
+            comparisonDayFiltersDiv.innerHTML = '';
+            availableDays.forEach(dayNum => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="comparisonDay${dayNum}" checked onchange="updateComparisonDayTypeCheckboxes(); applyFilters()">
+                    <label for="comparisonDay${dayNum}">${dayNames[dayNum]}</label>
+                `;
+                comparisonDayFiltersDiv.appendChild(div);
+            });
+
+            updateDayTypeCheckboxes();
+            updateComparisonDayTypeCheckboxes();
+
+            // Hotspot filters
+            const hotspotFilterSelect = document.getElementById('hotspotFilter');
+            hotspotFilterSelect.innerHTML = '<option value="all">All Lots</option>';
+            availableHotspots.forEach(hotspot => {
+                const option = document.createElement('option');
+                option.value = hotspot;
+                option.textContent = `${hotspot} - ${hotspotToNameMap[hotspot] || 'Unknown'}`;
+                hotspotFilterSelect.appendChild(option);
+            });
+
+            const comparisonHotspotFilterSelect = document.getElementById('comparisonHotspotFilter');
+            comparisonHotspotFilterSelect.innerHTML = '<option value="none">No Comparison</option><option value="all">All Lots</option>';
+            availableHotspots.forEach(hotspot => {
+                const option = document.createElement('option');
+                option.value = hotspot;
+                option.textContent = `${hotspot} - ${hotspotToNameMap[hotspot] || 'Unknown'}`;
+                comparisonHotspotFilterSelect.appendChild(option);
+            });
         }
 
-        function getWeekDateRange(weekNumber, year = 2024) {
-            // Create a date for January 1st of the reference year
-            const startOfYear = new Date(year, 0, 1);
-            
-            // Find the first Sunday of the year (week starts on Sunday)
-            const firstSunday = new Date(startOfYear);
-            const dayOfWeek = startOfYear.getDay();
-            if (dayOfWeek !== 0) {
-                firstSunday.setDate(startOfYear.getDate() + (7 - dayOfWeek));
-            }
-            
-            // Calculate the start date of the requested week
-            const weekStart = new Date(firstSunday);
-            weekStart.setDate(firstSunday.getDate() + (weekNumber - 1) * 7);
-            
-            // Calculate the end date of the week (6 days later)
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-            
-            // Format the dates
-            const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
-            const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
-            const startDay = weekStart.getDate();
-            const endDay = weekEnd.getDate();
-            
-            if (startMonth === endMonth) {
-                return `${startMonth} ${startDay}-${endDay}`;
-            } else {
-                return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-            }
+        function toggleAllMonths() {
+            const allChecked = availableMonths.every(month => 
+                document.getElementById(`month${month}`).checked
+            );
+            availableMonths.forEach(month => {
+                document.getElementById(`month${month}`).checked = !allChecked;
+            });
+            applyFilters();
         }
 
-        function generateHistogram() {
-            const ctx = document.getElementById('histogramChart').getContext('2d');
-            const year = document.getElementById('yearSelect').value;
-            const period = document.getElementById('periodSelect').value;
-            
-            // Destroy existing chart
-            if (histogramChart) {
-                histogramChart.destroy();
-            }
+        function toggleAllDays() {
+            const allChecked = availableDays.every(day => 
+                document.getElementById(`day${day}`).checked
+            );
+            availableDays.forEach(day => {
+                document.getElementById(`day${day}`).checked = !allChecked;
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
 
-            // Filter data by year and valid dates
-            let filteredData = rawData.filter(record => record.parsedDate);
+        function toggleAllComparisonMonths() {
+            const allChecked = availableMonths.every(month => 
+                document.getElementById(`comparisonMonth${month}`).checked
+            );
+            availableMonths.forEach(month => {
+                document.getElementById(`comparisonMonth${month}`).checked = !allChecked;
+            });
+            applyFilters();
+        }
+
+        function toggleAllComparisonDays() {
+            const allChecked = availableDays.every(day => 
+                document.getElementById(`comparisonDay${day}`).checked
+            );
+            availableDays.forEach(day => {
+                document.getElementById(`comparisonDay${day}`).checked = !allChecked;
+            });
+            updateComparisonDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleWeekdays() {
+            const weekdayToggle = document.getElementById('weekdayToggle').checked;
+            availableDays.forEach(day => {
+                if (day >= 1 && day <= 5) {
+                    document.getElementById(`day${day}`).checked = weekdayToggle;
+                }
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleWeekends() {
+            const weekendToggle = document.getElementById('weekendToggle').checked;
+            availableDays.forEach(day => {
+                if (day === 0 || day === 6) {
+                    document.getElementById(`day${day}`).checked = weekendToggle;
+                }
+            });
+            updateDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleComparisonWeekdays() {
+            const weekdayToggle = document.getElementById('comparisonWeekdayToggle').checked;
+            availableDays.forEach(day => {
+                if (day >= 1 && day <= 5) {
+                    document.getElementById(`comparisonDay${day}`).checked = weekdayToggle;
+                }
+            });
+            updateComparisonDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function toggleComparisonWeekends() {
+            const weekendToggle = document.getElementById('comparisonWeekendToggle').checked;
+            availableDays.forEach(day => {
+                if (day === 0 || day === 6) {
+                    document.getElementById(`comparisonDay${day}`).checked = weekendToggle;
+                }
+            });
+            updateComparisonDayTypeCheckboxes();
+            applyFilters();
+        }
+
+        function updateDayTypeCheckboxes() {
+            const weekdayChecked = availableDays
+                .filter(day => day >= 1 && day <= 5)
+                .every(day => document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked);
+            const weekendChecked = availableDays
+                .filter(day => day === 0 || day === 6)
+                .every(day => document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked);
+
+            document.getElementById('weekdayToggle').checked = weekdayChecked;
+            document.getElementById('weekendToggle').checked = weekendChecked;
+        }
+
+        function updateComparisonDayTypeCheckboxes() {
+            const weekdayChecked = availableDays
+                .filter(day => day >= 1 && day <= 5)
+                .every(day => document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked);
+            const weekendChecked = availableDays
+                .filter(day => day === 0 || day === 6)
+                .every(day => document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked);
+
+            document.getElementById('comparisonWeekdayToggle').checked = weekdayChecked;
+            document.getElementById('comparisonWeekendToggle').checked = weekendChecked;
+        }
+
+        function applyFilters() {
+            // Primary dataset - check if custom range is selected
+            const selectedYearRadio = document.querySelector('input[name="year"]:checked');
+            const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
+            const isCustomRange = selectedYear === 'custom';
             
-            if (year !== 'all') {
-                const selectedYear = parseInt(year);
-                filteredData = filteredData.filter(record => record.parsedDate.getFullYear() === selectedYear);
-            }
+            const selectedMonths = availableMonths.filter(month => 
+                document.getElementById(`month${month}`).checked
+            );
+            const selectedDays = availableDays.filter(day => 
+                document.getElementById(`day${day}`).checked
+            );
+            const selectedHotspot = document.getElementById('hotspotFilter').value;
+            const estimateTrue = document.getElementById('estimateTrue').checked;
+
+            // Get date range for primary dataset
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+
+            const filteredData = rawCsvData.filter(row => {
+                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
+                
+                // Handle year/custom range logic
+                let matchesYear = true;
+                let matchesDateRange = true;
+                
+                if (isCustomRange) {
+                    // Use custom date range instead of year
+                    if (startDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
+                    }
+                    if (endDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
+                    }
+                } else {
+                    // Use year filter
+                    matchesYear = row.date.getFullYear() === Number(selectedYear);
+                }
+                
+                return selectedMonths.includes(row.month) &&
+                       selectedDays.includes(row.dayOfWeek) &&
+                       matchesHotspot &&
+                       matchesYear &&
+                       matchesDateRange;
+            });
 
             if (filteredData.length === 0) {
-                histogramChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['No Data'],
-                        datasets: [{
-                            label: 'Parking Instances',
-                            data: [0],
-                            backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                            borderColor: 'rgba(76, 175, 80, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `No data available for ${year === 'all' ? 'selected period' : year}`
-                            }
-                        }
-                    }
-                });
+                showError('No data matches the selected filters.');
                 return;
             }
 
-            let labels = [];
-            let data = [];
-            let usageMap = {};
-            let yearCounts = {}; // Track how many years contribute to each period
+            processedData = processTimeSlots(filteredData, estimateTrue);
 
-            if (year === 'all') {
-                // For "All Years", calculate averages across years
-                if (period === 'day') {
-                    // Initialize all days of year (1-366)
-                    for (let i = 1; i <= 366; i++) {
-                        usageMap[i] = 0;
-                        yearCounts[i] = new Set(); // Use Set to track unique years
-                    }
-                    
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const dayOfYear = getDayOfYear(date);
-                        usageMap[dayOfYear] = (usageMap[dayOfYear] || 0) + 1;
-                        yearCounts[dayOfYear].add(date.getFullYear());
-                    });
-                    
-                    // Create labels and data for all days (calculate averages)
-                    for (let i = 1; i <= 365; i++) {
-                        const date = new Date(2024, 0, i);
-                        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-                        const totalInstances = usageMap[i] || 0;
-                        const yearsWithData = yearCounts[i].size || 1;
-                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100); // Average rounded to 2 decimals
-                    }
-                    
-                } else if (period === 'week') {
-                    // Initialize all weeks (1-53)
-                    for (let i = 1; i <= 53; i++) {
-                        usageMap[i] = 0;
-                        yearCounts[i] = new Set();
-                    }
-                    
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const weekOfYear = getWeekOfYear(date);
-                        usageMap[weekOfYear] = (usageMap[weekOfYear] || 0) + 1;
-                        yearCounts[weekOfYear].add(date.getFullYear());
-                    });
-                    
-                    // Create labels and data for all weeks (calculate averages)
-                    for (let i = 1; i <= 52; i++) {
-                        labels.push(getWeekDateRange(i, 2024)); // Use 2024 as reference year
-                        const totalInstances = usageMap[i] || 0;
-                        const yearsWithData = yearCounts[i].size || 1;
-                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100);
-                    }
-                    
-                } else { // month
-                    // Initialize all months (1-12)
-                    for (let i = 1; i <= 12; i++) {
-                        usageMap[i] = 0;
-                        yearCounts[i] = new Set();
-                    }
-                    
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const month = date.getMonth() + 1;
-                        usageMap[month] = (usageMap[month] || 0) + 1;
-                        yearCounts[month].add(date.getFullYear());
-                    });
-                    
-                    // Create labels and data for all months (calculate averages)
-                    for (let i = 1; i <= 12; i++) {
-                        const date = new Date(2024, i - 1, 1);
-                        labels.push(date.toLocaleDateString('en-US', { month: 'long' }));
-                        const totalInstances = usageMap[i] || 0;
-                        const yearsWithData = yearCounts[i].size || 1;
-                        data.push(Math.round((totalInstances / yearsWithData) * 100) / 100);
-                    }
-                }
-            } else {
-                // For specific year, show actual counts
-                const selectedYear = parseInt(year);
+            // Comparison dataset
+            const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
+            if (comparisonHotspot !== 'none') {
+                const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
+                const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
+                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
                 
-                if (period === 'day') {
-                    // Determine if it's a leap year
-                    const isLeapYear = (selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0);
-                    const daysInYear = isLeapYear ? 366 : 365;
+                const comparisonSelectedMonths = availableMonths.filter(month => 
+                    document.getElementById(`comparisonMonth${month}`).checked
+                );
+                const comparisonSelectedDays = availableDays.filter(day => 
+                    document.getElementById(`comparisonDay${day}`).checked
+                );
+
+                // Get date range for comparison dataset
+                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
+                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
+
+                const comparisonFilteredData = rawCsvData.filter(row => {
+                    const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
                     
-                    // Initialize all days for the specific year
-                    for (let i = 1; i <= daysInYear; i++) {
-                        const date = new Date(selectedYear, 0, i);
-                        const key = date.toISOString().split('T')[0];
-                        usageMap[key] = 0;
+                    // Handle comparison year/custom range logic
+                    let matchesYear = true;
+                    let matchesDateRange = true;
+                    
+                    if (isComparisonCustomRange) {
+                        // Use custom date range instead of year
+                        if (comparisonStartDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
+                        }
+                        if (comparisonEndDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
+                        }
+                    } else {
+                        // Use year filter
+                        matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
                     }
                     
-                    filteredData.forEach(record => {
-                        const key = record.parsedDate.toISOString().split('T')[0];
-                        usageMap[key] = (usageMap[key] || 0) + 1;
-                    });
-                    
-                    const sortedKeys = Object.keys(usageMap).sort();
-                    labels = sortedKeys.map(key => {
-                        return new Date(key).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric'
-                        });
-                    });
-                    data = sortedKeys.map(key => usageMap[key]);
-                    
-                } else if (period === 'week') {
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const startOfWeek = new Date(date);
-                        startOfWeek.setDate(date.getDate() - date.getDay());
-                        if (startOfWeek.getFullYear() === selectedYear) {
-                            const key = startOfWeek.toISOString().split('T')[0];
-                            usageMap[key] = (usageMap[key] || 0) + 1;
-                        }
-                    });
-                    
-                    const sortedKeys = Object.keys(usageMap).sort();
-                    labels = sortedKeys.map(key => {
-                        const startDate = new Date(key);
-                        const endDate = new Date(startDate);
-                        endDate.setDate(startDate.getDate() + 6);
-                        
-                        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
-                        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
-                        const startDay = startDate.getDate();
-                        const endDay = endDate.getDate();
-                        
-                        if (startMonth === endMonth) {
-                            return `${startMonth} ${startDay}-${endDay}`;
-                        } else {
-                            return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-                        }
-                    });
-                    data = sortedKeys.map(key => usageMap[key]);
-                    
-                } else { // month
-                    // Initialize all months for the specific year
-                    for (let i = 0; i < 12; i++) {
-                        const key = `${selectedYear}-${String(i + 1).padStart(2, '0')}`;
-                        usageMap[key] = 0;
-                    }
-                    
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                        usageMap[key] = (usageMap[key] || 0) + 1;
-                    });
-                    
-                    const sortedKeys = Object.keys(usageMap).sort();
-                    labels = sortedKeys.map(key => {
-                        const [year, month] = key.split('-');
-                        return new Date(year, month - 1).toLocaleDateString('en-US', { 
-                            month: 'long'
-                        });
-                    });
-                    data = sortedKeys.map(key => usageMap[key]);
-                }
-            }
+                    return comparisonSelectedMonths.includes(row.month) &&
+                           comparisonSelectedDays.includes(row.dayOfWeek) &&
+                           matchesHotspot &&
+                           matchesYear &&
+                           matchesDateRange;
+                });
 
-            histogramChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: year === 'all' ? 'Average Parking Instances' : 'Parking Instances',
-                        data: data,
-                        backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                        borderColor: 'rgba(76, 175, 80, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: year === 'all' ? 0.1 : 1
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: period === 'day' ? 90 : 45,
-                                minRotation: period === 'day' ? 90 : 0,
-                                maxTicksLimit: period === 'day' ? 50 : undefined
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Parking Usage ${year === 'all' ? 'All Years (Average)' : year} - Grouped by ${period.charAt(0).toUpperCase() + period.slice(1)}`
-                        },
-                        legend: {
-                            display: false
-                        }
-                    },
-                    layout: {
-                        padding: {
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            bottom: 0
-                        }
-                    }
-                }
-            });
-        }
-
-        function getDayOfYear(date) {
-            const start = new Date(date.getFullYear(), 0, 0);
-            const diff = date - start;
-            const oneDay = 1000 * 60 * 60 * 24;
-            return Math.floor(diff / oneDay);
-        }
-
-        function getWeekOfYear(date) {
-            const start = new Date(date.getFullYear(), 0, 1);
-            const days = Math.floor((date - start) / (24 * 60 * 60 * 1000));
-            return Math.ceil((days + start.getDay() + 1) / 7);
-        }
-
-        function updateHistogram() {
-            generateHistogram();
-        }
-
-        function displaySummaryTable() {
-            const tbody = document.getElementById('summaryTableBody');
-            tbody.innerHTML = '';
-
-            const startIndex = (currentPage - 1) * recordsPerPage;
-            const endIndex = startIndex + recordsPerPage;
-            const displayData = userSummaryData.slice(startIndex, endIndex);
-
-            displayData.forEach(user => {
-                const row = document.createElement('tr');
-                row.onclick = () => showUserDetails(user.plate);
-                
-                row.innerHTML = `
-                    <td>${user.plate}</td>
-                    <td>${user.user}</td>
-                    <td>${user.make}</td>
-                    <td>${user.instances}</td>
-                    <td>${user.totalTime.toFixed(2)}</td>
-                    <td>${user.totalSpend.toFixed(2)}</td>
-                    <td>${user.avgSpend.toFixed(2)}</td>
-                    <td>${user.avgTime.toFixed(2)}</td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-        }
-
-        function updatePagination() {
-            const totalPages = Math.ceil(userSummaryData.length / recordsPerPage);
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
-            
-            document.getElementById('prevBtn').disabled = currentPage === 1;
-            document.getElementById('nextBtn').disabled = currentPage === totalPages;
-        }
-
-        function nextPage() {
-            const totalPages = Math.ceil(userSummaryData.length / recordsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                displaySummaryTable();
-                updatePagination();
-            }
-        }
-
-        function previousPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                displaySummaryTable();
-                updatePagination();
-            }
-        }
-
-        function sortTableByColumn(column) {
-            if (currentSortColumn === column) {
-                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSortColumn = column;
-                currentSortOrder = 'asc';
-            }
-            
-            userSummaryData.sort((a, b) => {
-                let aVal = a[column];
-                let bVal = b[column];
-                
-                if (typeof aVal === 'string') {
-                    aVal = aVal.toLowerCase();
-                    bVal = bVal.toLowerCase();
-                }
-                
-                if (currentSortOrder === 'desc') {
-                    return bVal > aVal ? 1 : -1;
+                if (comparisonFilteredData.length > 0) {
+                    comparisonProcessedData = processTimeSlots(comparisonFilteredData, estimateTrue);
                 } else {
-                    return aVal > bVal ? 1 : -1;
+                    comparisonProcessedData = [];
                 }
-            });
-            
-            currentPage = 1;
-            displaySummaryTable();
-            updatePagination();
-            updateSortArrows(column);
-        }
-
-        function updateSortArrows(activeColumn) {
-            const arrows = document.querySelectorAll('.sort-arrow');
-            arrows.forEach(arrow => arrow.textContent = '');
-            
-            const activeArrow = document.querySelector(`th[onclick="sortTableByColumn('${activeColumn}')"] .sort-arrow`);
-            if (activeArrow) {
-                activeArrow.textContent = currentSortOrder === 'asc' ? '▲' : '▼';
-            }
-        }
-
-        function searchUser() {
-            const searchTerm = document.getElementById('searchInput').value.trim().toUpperCase();
-            if (!searchTerm) {
-                showError('Please enter a license plate, user ID, or vehicle make to search.');
-                return;
-            }
-
-            // Search by license plate, user ID, or make
-            const user = userSummaryData.find(u => 
-                u.plate.toUpperCase() === searchTerm || 
-                u.user.toString().toUpperCase() === searchTerm ||
-                u.make.toUpperCase().includes(searchTerm)
-            );
-
-            if (user) {
-                // Find which page the user is on
-                const userIndex = userSummaryData.findIndex(u => u.plate === user.plate);
-                const userPage = Math.ceil((userIndex + 1) / recordsPerPage);
-                
-                currentPage = userPage;
-                displaySummaryTable();
-                updatePagination();
-                
-                showUserDetails(user.plate);
-                highlightUserInTable(user.plate);
             } else {
-                showError('User not found. Please check the license plate, user ID, or vehicle make.');
-            }
-        }
-
-        function highlightUserInTable(plate) {
-            const rows = document.querySelectorAll('#summaryTableBody tr');
-            rows.forEach(row => row.classList.remove('highlight-row'));
-            
-            rows.forEach(row => {
-                if (row.cells[0].textContent === plate) {
-                    row.classList.add('highlight-row');
-                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
-        }
-
-        function showUserDetails(plate) {
-            const user = userSummaryData.find(u => u.plate === plate);
-            if (!user) return;
-
-            document.getElementById('userDetailsTitle').textContent = `Details for ${plate} (User: ${user.user})`;
-
-            const sessions = user.sessions;
-            const hotspots = [...new Set(sessions.map(s => s.hotspot))];
-            
-            const avgSessionLength = user.totalTime / user.instances;
-            const maxSession = sessions.length > 0 ? Math.max(...sessions.map(s => s.length)) : 0;
-            const minSession = sessions.length > 0 ? Math.min(...sessions.map(s => s.length)) : 0;
-            const maxSpend = sessions.length > 0 ? Math.max(...sessions.map(s => s.total)) : 0;
-            const minSpend = sessions.length > 0 ? Math.min(...sessions.map(s => s.total)) : 0;
-            
-            const hotspotCounts = {};
-            sessions.forEach(s => {
-                hotspotCounts[s.hotspot] = (hotspotCounts[s.hotspot] || 0) + 1;
-            });
-            const mostUsedHotspot = Object.entries(hotspotCounts).length > 0 ? 
-                Object.entries(hotspotCounts).sort((a, b) => b[1] - a[1])[0] : ['None', 0];
-
-            const statsGrid = document.getElementById('statsGrid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <h4>Total Parking Sessions</h4>
-                    <div class="stat-value">${user.instances}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Total Time Parked</h4>
-                    <div class="stat-value">${user.totalTime.toFixed(2)} hrs</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Total Amount Spent</h4>
-                    <div class="stat-value">$${user.totalSpend.toFixed(2)}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Average Session Length</h4>
-                    <div class="stat-value">${avgSessionLength.toFixed(2)} hrs</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Average Spend per Session</h4>
-                    <div class="stat-value">$${user.avgSpend.toFixed(2)}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Vehicle Make</h4>
-                    <div class="stat-value">${user.make}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Longest Session</h4>
-                    <div class="stat-value">${maxSession.toFixed(2)} hrs</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Shortest Session</h4>
-                    <div class="stat-value">${minSession.toFixed(2)} hrs</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Highest Single Payment</h4>
-                    <div class="stat-value">$${maxSpend.toFixed(2)}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Lowest Single Payment</h4>
-                    <div class="stat-value">$${minSpend.toFixed(2)}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Unique Hotspots Used</h4>
-                    <div class="stat-value">${hotspots.length}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Most Used Hotspot</h4>
-                    <div class="stat-value">${mostUsedHotspot[0]} (${mostUsedHotspot[1]}x)</div>
-                </div>
-            `;
-
-            // Generate usage chart
-            generateUsageChart(user);
-
-            const tbody = document.getElementById('userDetailsTableBody');
-            tbody.innerHTML = '';
-            
-            sessions.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)).forEach(session => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${session.startTime} ${session.time}</td>
-                    <td>${session.hotspot}</td>
-                    <td>${session.city}</td>
-                    <td>${session.length.toFixed(2)}</td>
-                    <td>${session.total.toFixed(2)}</td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            document.getElementById('userDetails').style.display = 'block';
-            document.getElementById('userDetails').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function generateUsageChart(user) {
-            const ctx = document.getElementById('usageChart').getContext('2d');
-            const period = document.getElementById('chartPeriod').value;
-            
-            // Destroy existing chart
-            if (currentChart) {
-                currentChart.destroy();
+                comparisonProcessedData = [];
             }
 
-            // Filter sessions with valid dates
-            const validSessions = user.sessions.filter(s => s.parsedDate);
-            
-            if (validSessions.length === 0) {
-                // Show message if no valid dates
-                currentChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['No Data'],
-                        datasets: [{
-                            label: 'Usage Count',
-                            data: [0],
-                            backgroundColor: 'rgba(33, 150, 243, 0.6)',
-                            borderColor: 'rgba(33, 150, 243, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'No valid date data available'
-                            }
-                        }
-                    }
-                });
-                return;
-            }
+            updateChart();
+        }
 
-            let labels = [];
-            let data = [];
-            let usageMap = {};
+        function processTimeSlots(sessions, estimateTrue) {
+            const minuteCounts = new Array(1440).fill(0);
 
-            if (period === 'month') {
-                validSessions.forEach(session => {
-                    const date = session.parsedDate;
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                    usageMap[key] = (usageMap[key] || 0) + 1;
-                });
+            sessions.forEach(session => {
+                const startMinute = session.hours * 60 + session.minutes;
+                const endMinute = startMinute + Math.round(session.length * 60);
                 
-                // Sort by date
-                const sortedKeys = Object.keys(usageMap).sort();
-                labels = sortedKeys.map(key => {
-                    const [year, month] = key.split('-');
-                    return `${new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
-                });
-                data = sortedKeys.map(key => usageMap[key]);
-            } else {
-                validSessions.forEach(session => {
-                    const year = session.parsedDate.getFullYear();
-                    usageMap[year] = (usageMap[year] || 0) + 1;
-                });
-                
-                const sortedKeys = Object.keys(usageMap).sort();
-                labels = sortedKeys;
-                data = sortedKeys.map(key => usageMap[key]);
-            }
-
-            currentChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Usage Count',
-                        data: data,
-                        backgroundColor: 'rgba(33, 150, 243, 0.6)',
-                        borderColor: 'rgba(33, 150, 243, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Usage Pattern by ${period.charAt(0).toUpperCase() + period.slice(1)}`
-                        }
+                for (let minute = startMinute; minute < endMinute && minute < 1440; minute++) {
+                    if (minute >= 0) {
+                        minuteCounts[minute]++;
                     }
                 }
             });
+
+            const uniqueDays = new Set(sessions.map(session => 
+                session.date.toDateString()
+            )).size;
+
+            const result = [];
+            for (let minute = 0; minute < 1440; minute += 5) {
+                const hours = Math.floor(minute / 60);
+                const mins = minute % 60;
+                const timeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                
+                result.push({
+                    time: timeStr,
+                    minute: minute,
+                    normalizedCount: (minuteCounts[minute] / uniqueDays) * (estimateTrue ? 4 : 1)
+                });
+            }
+            
+            return result;
         }
 
         function updateChart() {
-            const userDetailsTitle = document.getElementById('userDetailsTitle').textContent;
-            const plateMatch = userDetailsTitle.match(/Details for ([A-Z0-9]+)/);
-            if (plateMatch) {
-                const plate = plateMatch[1];
-                const user = userSummaryData.find(u => u.plate === plate);
-                if (user) {
-                    generateUsageChart(user);
-                }
+            if (!chart) {
+                initChart();
             }
+
+            // Primary dataset
+            const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const xData = businessHoursData.map(d => d.minute);
+            const yData = businessHoursData.map(d => d.normalizedCount);
+            
+            gaussianParams = fitGaussian(xData, yData);
+
+            const gaussianData = processedData.map(d => {
+                if (gaussianParams) {
+                    return gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev);
+                }
+                return null;
+            });
+
+            // Comparison dataset
+            let comparisonGaussianData = [];
+            if (comparisonProcessedData.length > 0) {
+                const comparisonBusinessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+                const comparisonXData = comparisonBusinessHoursData.map(d => d.minute);
+                const comparisonYData = comparisonBusinessHoursData.map(d => d.normalizedCount);
+                
+                comparisonGaussianParams = fitGaussian(comparisonXData, comparisonYData);
+
+                comparisonGaussianData = processedData.map(d => {
+                    if (comparisonGaussianParams) {
+                        return gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev);
+                    }
+                    return null;
+                });
+            } else {
+                comparisonGaussianParams = null;
+            }
+
+            chart.data.labels = processedData.map(d => d.time);
+            chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
+            chart.data.datasets[1].data = gaussianData;
+            chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
+            chart.data.datasets[3].data = comparisonGaussianData;
+
+            chart.data.datasets[0].label = document.getElementById('estimateTrue').checked 
+                ? 'Primary - Average Cars Parked (x4)'
+                : 'Primary - Average Cars Parked';
+
+            chart.data.datasets[2].label = document.getElementById('estimateTrue').checked 
+                ? 'Comparison - Average Cars Parked (x4)'
+                : 'Comparison - Average Cars Parked';
+
+            const hasComparison = comparisonProcessedData.length > 0;
+            chart.data.datasets[2].hidden = !hasComparison;
+            chart.data.datasets[3].hidden = !hasComparison;
+
+            document.getElementById('comparisonStatsColumn').style.display = hasComparison ? 'block' : 'none';
+
+            chart.update('none');
+            updateStats();
         }
 
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('userDetails').style.display = 'none';
+        function updateStats() {
+            const primaryStatsDiv = document.getElementById('primaryStats');
+            const comparisonStatsDiv = document.getElementById('comparisonStats');
             
-            const rows = document.querySelectorAll('#summaryTableBody tr');
-            rows.forEach(row => row.classList.remove('highlight-row'));
+            // Primary dataset filters & data
+            const selectedYearRadio = document.querySelector('input[name="year"]:checked');
+            const selectedYear = selectedYearRadio ? selectedYearRadio.value : availableYears[0];
+            const isCustomRange = selectedYear === 'custom';
+            
+            const selectedMonths = availableMonths.filter(month =>
+                document.getElementById(`month${month}`) && document.getElementById(`month${month}`).checked
+            );
+            const selectedDays = availableDays.filter(day => 
+                document.getElementById(`day${day}`) && document.getElementById(`day${day}`).checked
+            );
+            const selectedHotspot = document.getElementById('hotspotFilter').value;
+            const startDateInput = document.getElementById('startDate').value;
+            const endDateInput = document.getElementById('endDate').value;
+
+            const filteredData = rawCsvData.filter(row => {
+                const matchesHotspot = selectedHotspot === 'all' || row.hotspot === selectedHotspot;
+                
+                let matchesYear = true;
+                let matchesDateRange = true;
+                
+                if (isCustomRange) {
+                    if (startDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date >= new Date(startDateInput));
+                    }
+                    if (endDateInput) {
+                        matchesDateRange = matchesDateRange && (row.date <= new Date(endDateInput));
+                    }
+                } else {
+                    matchesYear = row.date.getFullYear() === Number(selectedYear);
+                }
+                
+                return selectedMonths.includes(row.month) &&
+                       selectedDays.includes(row.dayOfWeek) &&
+                       matchesHotspot &&
+                       matchesYear &&
+                       matchesDateRange;
+            });
+
+            const totalSessions = filteredData.length;
+            const uniqueDays = new Set(filteredData.map(session => session.date.toDateString())).size;
+            const hotspotDisplay = selectedHotspot === 'all' 
+                ? 'All Lots' 
+                : `${selectedHotspot} - ${hotspotToNameMap[selectedHotspot] || 'Unknown'}`;
+            const dateRange = getDateRange(filteredData);
+            const avgSessionsPerDay = uniqueDays > 0 ? (totalSessions / uniqueDays).toFixed(1) : '0.0';
+
+            if (gaussianParams) {
+                const peakHour = Math.floor(gaussianParams.mean / 60);
+                const peakMin = Math.round(gaussianParams.mean % 60);
+                const peakTimeStr = `${peakHour.toString().padStart(2,'0')}:${peakMin.toString().padStart(2,'0')}`;
+                const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
+                const rSquared = calculateRSquared().toFixed(3);
+
+                primaryStatsDiv.innerHTML = `
+Primary Dataset:<br>
+${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
+Total Sessions: ${totalSessions}<br>
+Unique Days: ${uniqueDays}<br>
+Date Range: ${dateRange}<br>
+Average Sessions per Day: ${avgSessionsPerDay}<br>
+Selected Lots: ${hotspotDisplay}<br>
+Peak Occupancy Time: ${peakTimeStr}<br>
+Max Cars: ${gaussianParams.amplitude.toFixed(1)}<br>
+<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
+<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
+                `;
+            } else {
+                primaryStatsDiv.innerHTML = `
+Primary Dataset:<br>
+${isCustomRange ? 'Custom Range' : `Year: ${selectedYear}`}<br>
+Total Sessions: ${totalSessions}<br>
+Unique Days: ${uniqueDays}<br>
+Date Range: ${dateRange}<br>
+Average Sessions per Day: ${avgSessionsPerDay}<br>
+Selected Lots: ${hotspotDisplay}<br>
+<br>
+<strong>Insufficient data for Normal Distribution</strong>
+                `;
+            }
+
+            // Comparison dataset filters & data
+            const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
+            let comparisonHtml = '';
+
+            if (comparisonHotspot !== 'none') {
+                const comparisonSelectedYearRadio = document.querySelector('input[name="comparisonYear"]:checked');
+                const comparisonSelectedYear = comparisonSelectedYearRadio ? comparisonSelectedYearRadio.value : availableYears[0];
+                const isComparisonCustomRange = comparisonSelectedYear === 'custom';
+                
+                const comparisonSelectedMonths = availableMonths.filter(month => 
+                    document.getElementById(`comparisonMonth${month}`) && document.getElementById(`comparisonMonth${month}`).checked
+                );
+                const comparisonSelectedDays = availableDays.filter(day => 
+                    document.getElementById(`comparisonDay${day}`) && document.getElementById(`comparisonDay${day}`).checked
+                );
+                const comparisonStartDateInput = document.getElementById('comparisonStartDate').value;
+                const comparisonEndDateInput = document.getElementById('comparisonEndDate').value;
+
+                const comparisonFilteredData = rawCsvData.filter(row => {
+                    const matchesHotspot = comparisonHotspot === 'all' || row.hotspot === comparisonHotspot;
+                    
+                    let matchesYear = true;
+                    let matchesDateRange = true;
+                    
+                    if (isComparisonCustomRange) {
+                        if (comparisonStartDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date >= new Date(comparisonStartDateInput));
+                        }
+                        if (comparisonEndDateInput) {
+                            matchesDateRange = matchesDateRange && (row.date <= new Date(comparisonEndDateInput));
+                        }
+                    } else {
+                        matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
+                    }
+                    
+                    return comparisonSelectedMonths.includes(row.month) &&
+                           comparisonSelectedDays.includes(row.dayOfWeek) &&
+                           matchesHotspot &&
+                           matchesYear &&
+                           matchesDateRange;
+                });
+
+                const comparisonTotalSessions = comparisonFilteredData.length;
+                const comparisonUniqueDays = new Set(comparisonFilteredData.map(session => session.date.toDateString())).size;
+                const comparisonHotspotDisplay = comparisonHotspot === 'all' 
+                    ? 'All Lots' 
+                    : `${comparisonHotspot} - ${hotspotToNameMap[comparisonHotspot] || 'Unknown'}`;
+                const comparisonDateRange = getDateRange(comparisonFilteredData);
+                const comparisonAvgSessionsPerDay = comparisonUniqueDays > 0 
+                    ? (comparisonTotalSessions / comparisonUniqueDays).toFixed(1)
+                    : '0.0';
+
+                if (comparisonGaussianParams) {
+                    const cPeakHour = Math.floor(comparisonGaussianParams.mean / 60);
+                    const cPeakMin = Math.round(comparisonGaussianParams.mean % 60);
+                    const cPeakTimeStr = `${cPeakHour.toString().padStart(2,'0')}:${cPeakMin.toString().padStart(2,'0')}`;
+                    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
+                    const cRSquared = calculateComparisonRSquared().toFixed(3);
+
+                    comparisonHtml = `
+Comparison Dataset:<br>
+${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
+Total Sessions: ${comparisonTotalSessions}<br>
+Unique Days: ${comparisonUniqueDays}<br>
+Date Range: ${comparisonDateRange}<br>
+Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+Selected Lots: ${comparisonHotspotDisplay}<br>
+Peak Occupancy Time: ${cPeakTimeStr}<br>
+Max Cars: ${comparisonGaussianParams.amplitude.toFixed(1)}<br>
+<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
+<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
+                    `;
+                } else {
+                    comparisonHtml = `
+Comparison Dataset:<br>
+${isComparisonCustomRange ? 'Custom Range' : `Year: ${comparisonSelectedYear}`}<br>
+Total Sessions: ${comparisonTotalSessions}<br>
+Unique Days: ${comparisonUniqueDays}<br>
+Date Range: ${comparisonDateRange}<br>
+Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+Selected Lots: ${comparisonHotspotDisplay}<br>
+<br>
+<strong>Insufficient data for Normal Distribution</strong>
+                    `;
+                }
+            }
+
+            comparisonStatsDiv.innerHTML = comparisonHtml;
+        }
+
+        function calculateRSquared() {
+            if (!gaussianParams) return 0;
+            
+            const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const yActual = businessHoursData.map(d => d.normalizedCount);
+            const yPredicted = businessHoursData.map(d => 
+                gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev)
+            );
+            
+            const yMean = yActual.reduce((a, b) => a + b, 0) / yActual.length;
+            const ssRes = yActual.reduce((sum, y, i) => sum + Math.pow(y - yPredicted[i], 2), 0);
+            const ssTot = yActual.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+            
+            return Math.max(0, 1 - (ssRes / ssTot));
+        }
+
+        function calculateComparisonRSquared() {
+            if (!comparisonGaussianParams) return 0;
+            
+            const businessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+            const yActual = businessHoursData.map(d => d.normalizedCount);
+            const yPredicted = businessHoursData.map(d => 
+                gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev)
+            );
+            
+            const yMean = yActual.reduce((a, b) => a + b, 0) / yActual.length;
+            const ssRes = yActual.reduce((sum, y, i) => sum + Math.pow(y - yPredicted[i], 2), 0);
+            const ssTot = yActual.reduce((sum, y) => sum + Math.pow(y - yMean, 2), 0);
+            
+            return Math.max(0, 1 - (ssRes / ssTot));
+        }
+
+        function getDateRange(data) {
+            if (data.length === 0) return 'No data';
+            const dates = data.map(row => row.date).sort((a, b) => a - b);
+            const start = dates[0].toLocaleDateString();
+            const end = dates[dates.length - 1].toLocaleDateString();
+            return start === end ? start : `${start} to ${end}`;
         }
 
         function showError(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error';
             errorDiv.textContent = message;
-            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('histogramSection'));
+            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('controls'));
             setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function exportCSV() {
+            if (!processedData || processedData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            let header, rows;
+
+            if (comparisonProcessedData.length > 0) {
+                header = ['Time', 'Primary - Average Cars Parked', 'Comparison - Average Cars Parked'];
+                rows = processedData.map((d, i) => [
+                    d.time, 
+                    d.normalizedCount.toFixed(2),
+                    comparisonProcessedData[i] ? comparisonProcessedData[i].normalizedCount.toFixed(2) : '0.00'
+                ]);
+            } else {
+                header = ['Time', 'Average Cars Parked'];
+                rows = processedData.map(d => [d.time, d.normalizedCount.toFixed(2)]);
+            }
+
+            const csvContent = [header, ...rows].map(e => e.join(",")).join("\n");
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'parking_data.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportPNG() {
+            if (!chart) {
+                alert('No chart to export');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = chart.toBase64Image();
+            a.download = 'parking_chart.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('parkingChart').getContext('2d');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Primary - Average Cars Parked',
+                            data: [],
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            pointHoverRadius: 4,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Primary - Normal Distribution',
+                            data: [],
+                            borderColor: '#FF5722',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Comparison - Average Cars Parked',
+                            data: [],
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            pointHoverRadius: 4,
+                            tension: 0.1,
+                            hidden: true
+                        },
+                        {
+                            label: 'Comparison - Normal Distribution',
+                            data: [],
+                            borderColor: '#E91E63',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0.4,
+                            hidden: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Parking Occupancy Analysis from CSV Data',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time of Day'
+                            },
+                            ticks: {
+                                maxTicksLimit: 24,
+                                callback: function(value, index) {
+                                    const time = this.getLabelForValue(value);
+                                    const [hour, minute] = time.split(':');
+                                    return minute === '00' ? time : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Average Cars Parked per Day'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 1
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         window.addEventListener('load', () => {
             setupFileUpload();
+            autoLoadCSV(); // Add this line to trigger auto-loading
         });
     </script>
 </body>
