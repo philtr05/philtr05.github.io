@@ -204,7 +204,6 @@
         .calendar-container.hidden {
             display: none;
         }
-
         .chart-container {
             position: relative;
             height: 500px;
@@ -320,7 +319,8 @@
         <h1>Parking Analysis Tool</h1>
         <p>Created by Philippe Tremblay / AI</p>
         <div class="upload-section" id="uploadSection">
-            <h3>Upload CSV File</h3>
+            <h3>Parking Data Upload</h3>
+            <p>🔄 <em>Attempting to auto-load default dataset...</em></p>
             <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
             <p>Example: 2024-01-15, 09:30, 2.5, 1, LotA</p>
             <input type="file" id="fileInput" accept=".csv" />
@@ -444,7 +444,7 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="filter-row">
                     <div class="filter-group">
                         <h4>Months</h4>
@@ -510,6 +510,92 @@
         const dayNames = [
             'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
         ];
+
+        // ===== AUTO-LOAD CSV FUNCTION =====
+        function autoLoadCSV() {
+            // Show loading message
+            const uploadSection = document.getElementById('uploadSection');
+            const originalContent = uploadSection.innerHTML;
+            uploadSection.innerHTML = `
+                <h3>Loading Default Dataset...</h3>
+                <p>Attempting to load "2023-2025 Parking.csv" from repository...</p>
+                <div style="margin: 10px 0;">
+                    <div style="width: 100%; background-color: #f0f0f0; border-radius: 4px;">
+                        <div id="loadingBar" style="width: 0%; height: 20px; background-color: #2196F3; border-radius: 4px; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            `;
+
+            // Animate loading bar
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += 10;
+                document.getElementById('loadingBar').style.width = progress + '%';
+                if (progress >= 90) clearInterval(loadingInterval);
+            }, 100);
+
+            fetch('./2023-2025 Parking.csv')
+                .then(response => {
+                    clearInterval(loadingInterval);
+                    document.getElementById('loadingBar').style.width = '100%';
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    // Parse the CSV using PapaParse
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        dynamicTyping: true,
+                        complete: function(results) {
+                            if (results.errors.length > 0) {
+                                throw new Error('CSV parsing errors: ' + results.errors.map(e => e.message).join(', '));
+                            }
+                            
+                            // Update upload section to show success
+                            uploadSection.innerHTML = `
+                                <h3>✅ Default Dataset Loaded Successfully</h3>
+                                <p><strong>File:</strong> 2023-2025 Parking.csv</p>
+                                <p><strong>Records:</strong> ${results.data.length} parking sessions</p>
+                                <hr style="margin: 15px 0;">
+                                <h4>Upload Different File (Optional)</h4>
+                                <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
+                                <input type="file" id="fileInput" accept=".csv" />
+                                <p><small>Or drag and drop a different CSV file here</small></p>
+                            `;
+                            
+                            // Re-setup file upload for new input
+                            setupFileUpload();
+                            
+                            // Process the loaded data
+                            processCsvData(results.data);
+                        },
+                        error: function(error) {
+                            throw new Error('Error parsing CSV: ' + error.message);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.warn('Could not load default CSV file:', error.message);
+                    
+                    // Restore original upload interface
+                    uploadSection.innerHTML = originalContent;
+                    setupFileUpload();
+                    
+                    // Show info message about manual upload
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;';
+                    infoDiv.innerHTML = `
+                        <strong>ℹ️ Default file not found</strong><br>
+                        Could not automatically load "2023-2025 Parking.csv".<br>
+                        Please upload your CSV file manually using the form above.
+                    `;
+                    uploadSection.appendChild(infoDiv);
+                });
+        }
 
         // ===== CALENDAR DATE PICKER FUNCTIONS =====
         function toggleDatePicker(type) {
@@ -1674,6 +1760,7 @@ Selected Lots: ${comparisonHotspotDisplay}<br>
 
         window.addEventListener('load', () => {
             setupFileUpload();
+            autoLoadCSV(); // Add this line to trigger auto-loading
         });
     </script>
 </body>
