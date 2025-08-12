@@ -546,21 +546,37 @@
                             return parsed;
                         };
 
-                        // Parse date for better handling
-                        const dateStr = row['date']?.toString().trim() || '';
-                        const timeStr = row['time']?.toString().trim() || '';
-                        let parsedDate = null;
-                        
-                        if (dateStr) {
-                            try {
-                                parsedDate = new Date(dateStr);
-                                if (isNaN(parsedDate.getTime())) {
-                                    parsedDate = null;
-                                }
-                            } catch (e) {
-                                parsedDate = null;
-                            }
-                        }
+                        /// Parse date for better handling - ensure local timezone
+const dateStr = row['date']?.toString().trim() || '';
+const timeStr = row['time']?.toString().trim() || '';
+let parsedDate = null;
+
+if (dateStr) {
+    try {
+        // Parse date in local timezone to avoid UTC conversion issues
+        if (dateStr.includes('-')) {
+            const [year, month, day] = dateStr.split('-');
+            parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                // Handle MM/DD/YYYY or DD/MM/YYYY format
+                const month = parseInt(parts[0]) - 1;
+                const day = parseInt(parts[1]);
+                const year = parseInt(parts[2]);
+                parsedDate = new Date(year, month, day);
+            }
+        } else {
+            parsedDate = new Date(dateStr);
+        }
+        
+        if (isNaN(parsedDate.getTime())) {
+            parsedDate = null;
+        }
+    } catch (e) {
+        parsedDate = null;
+    }
+}
 
                         return {
                             hotspot: row['hotspot #']?.toString().trim() || '',
@@ -808,30 +824,49 @@
                 const selectedYear = parseInt(year);
                 
                 if (period === 'day') {
-                    // Determine if it's a leap year
-                    const isLeapYear = (selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0);
-                    const daysInYear = isLeapYear ? 366 : 365;
-                    
-                    // Initialize all days for the specific year
-                    for (let i = 1; i <= daysInYear; i++) {
-                        const date = new Date(selectedYear, 0, i);
-                        const key = date.toISOString().split('T')[0];
-                        usageMap[key] = 0;
-                    }
-                    
-                    filteredData.forEach(record => {
-                        const key = record.parsedDate.toISOString().split('T')[0];
-                        usageMap[key] = (usageMap[key] || 0) + 1;
-                    });
-                    
-                    const sortedKeys = Object.keys(usageMap).sort();
-                    labels = sortedKeys.map(key => {
-                        return new Date(key).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric'
-                        });
-                    });
-                    data = sortedKeys.map(key => usageMap[key]);
+    // Determine if it's a leap year
+    const isLeapYear = (selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0);
+    const daysInYear = isLeapYear ? 366 : 365;
+    
+    // Create array to store all days of the year
+    const allDaysKeys = [];
+    
+    // Initialize all days for the specific year
+    for (let i = 1; i <= daysInYear; i++) {
+        const date = new Date(selectedYear, 0, i);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
+        allDaysKeys.push(key);
+        usageMap[key] = 0; // Initialize with 0
+    }
+    
+    // Populate with actual data
+    filteredData.forEach(record => {
+        const date = record.parsedDate;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
+        
+        if (usageMap.hasOwnProperty(key)) {
+            usageMap[key] = (usageMap[key] || 0) + 1;
+        }
+    });
+    
+    // Use the pre-defined array of all days instead of Object.keys()
+    labels = allDaysKeys.map(key => {
+        const [year, month, day] = key.split('-');
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric'
+        });
+    });
+    data = allDaysKeys.map(key => usageMap[key]);
+
+
                     
                 } else if (period === 'week') {
     // Initialize all weeks for the specific year first
@@ -855,7 +890,10 @@
             break;
         }
         
-        const key = weekStart.toISOString().split('T')[0];
+        const year = weekStart.getFullYear();
+        const month = String(weekStart.getMonth() + 1).padStart(2, '0');
+        const day = String(weekStart.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
         allWeekKeys.push(key);
         usageMap[key] = 0; // Initialize with 0
     }
@@ -863,11 +901,16 @@
     // Now populate with actual data
     filteredData.forEach(record => {
         const date = record.parsedDate;
-        const startOfWeek = new Date(date);
-        startOfWeek.setDate(date.getDate() - date.getDay());
+        // Find the Sunday of the week containing this date
+        const startOfWeek = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Go back to Sunday
         
         if (startOfWeek.getFullYear() === selectedYear) {
-            const key = startOfWeek.toISOString().split('T')[0];
+            const year = startOfWeek.getFullYear();
+            const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+            const day = String(startOfWeek.getDate()).padStart(2, '0');
+            const key = `${year}-${month}-${day}`;
+            
             if (usageMap.hasOwnProperty(key)) {
                 usageMap[key] = (usageMap[key] || 0) + 1;
             }
@@ -876,9 +919,10 @@
     
     // Generate labels and data for all weeks
     labels = allWeekKeys.map(key => {
-        const startDate = new Date(key);
+        const [year, month, day] = key.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
+        endDate.setDate(startDate.getDate() + 6); // Saturday of the same week
         
         const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
         const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
