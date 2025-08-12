@@ -1,484 +1,837 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Parking Analysis</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Analysis Tool | Phil's Transit Toolkit</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            background: #f8f9fa;
+            color: #333;
+        }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
             background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar a {
+            color: #495057;
+            padding: 20px 28px;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+        }
+
+        .navbar a:hover {
+            color: #212529;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .navbar a.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .page-header p {
+            font-size: 1.1rem;
+            color: #6c757d;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .upload-section {
             margin-bottom: 20px;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
+            border: 1px solid #e9ecef;
             text-align: center;
+            transition: all 0.3s ease;
         }
+
         .upload-section.dragover {
-            border-color: #2196F3;
-            background-color: #f0f8ff;
+            border-color: #007bff;
+            background-color: #e3f2fd;
+            transform: scale(1.01);
         }
+
+        .upload-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #212529;
+            font-weight: 600;
+        }
+
+        .upload-section p {
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .upload-section em {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .file-input-wrapper {
+            margin: 15px 0;
+        }
+
         #fileInput {
-            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 350px;
         }
+
+        /* OPTIMIZED CONTROLS LAYOUT */
         .controls {
+            display: none;
+            gap: 15px;
             margin-bottom: 20px;
+        }
+
+        .controls.active {
             display: flex;
-            gap: 20px;
+        }
+
+        .filter-panel, .comparison-panel {
+            flex: 1;
+            border-radius: 8px;
             padding: 15px;
             background-color: #f8f9fa;
-            border-radius: 6px;
+            border: 1px solid #e9ecef;
         }
+
         .filter-panel {
-            flex: 1;
-            border: 2px solid #2196F3;
-            border-radius: 8px;
-            padding: 15px;
-            width: 10px;
-            background-color: #f0f8ff;
+            border-left: 3px solid #007bff;
         }
+
         .comparison-panel {
-            flex: 1;
-            width: 10px;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 15px;
-            background-color: #f8fff8;
+            border-left: 3px solid #28a745;
         }
+
         .panel-title {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            font-weight: bold;
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
+
         .panel-title.primary {
-            color: #2196F3;
+            color: #007bff;
         }
+
         .panel-title.comparison {
-            color: #4CAF50;
+            color: #28a745;
         }
-        .filter-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            align-items: flex-start;
+
+        /* COMPACT FILTER SECTIONS */
+        .filter-section {
+            margin-bottom: 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
         }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            flex: 1;
+
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-content {
+            padding: 10px 12px;
+        }
+
+        /* YEAR AND DATE SELECTION - HORIZONTAL LAYOUT */
+        .year-date-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, auto);
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: start;
         }
-        .filter-group h4 {
-            margin: 0;
-            font-size: 14px;
-            color: #333;
-        }
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-            gap: 5px;
-        }
-        .month-checkboxes {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-            gap: 5px;
-        }
-        .radio-group {
+
+        .year-options {
             display: flex;
-            gap: 5px;
             flex-wrap: wrap;
+            gap: 8px;
         }
-        .checkbox-item, .radio-item {
+
+        .radio-item {
             display: flex;
             align-items: center;
             gap: 4px;
-            font-size: 13px;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
-        .checkbox-item input[type="checkbox"], .radio-item input[type="radio"] {
+
+        .radio-item input[type="radio"] {
             transform: scale(1.1);
+            cursor: pointer;
         }
-        .control-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
+
+        .radio-item label {
+            cursor: pointer;
+            user-select: none;
         }
-        input[type="checkbox"], input[type="radio"] {
-            transform: scale(1.2);
-        }
-        select {
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            width: 150px;
-        }
-        select:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-        
-        /* ===== CALENDAR ICON AND DATE RANGE STYLES ===== */
+
+        /* CALENDAR CONTROLS */
         .calendar-container {
             position: relative;
-            display: inline-block;
         }
-        
+
+        .calendar-container.hidden {
+            display: none;
+        }
+
         .calendar-icon {
-            background: none;
-            border: 1px solid #2196F3;
+            background: #007bff;
+            color: white;
+            border: none;
             border-radius: 4px;
             padding: 6px 8px;
             cursor: pointer;
-            font-size: 16px;
-            color: #2196F3;
-            transition: all 0.2s;
+            font-size: 14px;
+            transition: all 0.2s ease;
         }
-        
+
         .calendar-icon:hover {
-            background-color: #2196F3;
-            color: white;
+            background: #0056b3;
         }
-        
+
         .date-range {
             position: absolute;
             top: 100%;
-            left: 0;
+            right: 0;
             z-index: 1000;
             background: white;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             display: none;
-            flex-direction: column;
-            gap: 8px;
             min-width: 200px;
         }
-        
+
         .date-range.show {
-            display: flex;
+            display: block;
         }
-        
+
         .date-input-row {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         input[type="date"] {
-            padding: 4px;
+            padding: 4px 6px;
             border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 13px;
-            width: 140px;
+            border: 1px solid #ced4da;
+            font-size: 0.8rem;
+            flex: 1;
         }
-        
-        input[type="date"]:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-        
+
         .date-range label {
-            font-size: 12px;
-            min-width: 80px;
-            font-weight: bold;
+            font-size: 0.75rem;
+            min-width: 70px;
+            font-weight: 600;
+            color: #495057;
         }
-        
-        /* Hide calendar container by default */
-        .calendar-container.hidden {
-            display: none;
-        }
-        .chart-container {
-            position: relative;
-            height: 500px;
-            margin-top: 20px;
-        }
-        .combined-stats {
-            margin-top: 15px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
+
+        /* COMPACT FILTER GRIDS */
+        .lot-daytype-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 12px;
         }
-        .stats-column {
-            padding: 10px;
+
+        .filter-group select {
+            width: 100%;
+            padding: 6px 8px;
             border-radius: 4px;
+            border: 1px solid #ced4da;
+            font-size: 0.8rem;
+            background: white;
         }
-        .stats-primary {
-            background-color: #e3f2fd;
+
+        .daytype-checkboxes {
+            display: flex;
+            gap: 12px;
         }
-        .stats-comparison {
-            background-color: #e8f5e8;
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
         }
-        .data-info {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #e3f2fd;
-            border-radius: 4px;
-            font-size: 14px;
+
+        .checkbox-item input[type="checkbox"] {
+            transform: scale(1.1);
+            cursor: pointer;
         }
-        .error {
-            color: #d32f2f;
-            background-color: #ffebee;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
+
+        .checkbox-item label {
+            cursor: pointer;
+            user-select: none;
         }
-        button {
-            padding: 8px 16px;
-            background-color: #2196F3;
+
+        /* MONTHS AND DAYS GRIDS */
+        .months-days-row {
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            gap: 12px;
+        }
+
+        .month-checkboxes, .day-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 4px 8px;
+        }
+
+        .toggle-button {
+            background: #6c757d;
             color: white;
             border: none;
             border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
             cursor: pointer;
-            font-weight: bold;
+            margin-bottom: 8px;
+            width: 100%;
+            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #1976D2;
+
+        .toggle-button:hover {
+            background: #5a6268;
         }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .navbar {
-            background-color: #333;
-            overflow: hidden;
-            display: flex;
+
+        /* CONTROL BUTTONS */
+        .control-buttons {
+            display: none;
+            flex-wrap: wrap;
+            gap: 12px;
             justify-content: center;
-            margin-top: -30px;
-            margin-bottom: 10px;
-            margin-left: -30px;
-            margin-right: -30px;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-decoration: none;
-            text-align: center;
-            display: block;
-            transition: background 0.3s;
-        }
-        .navbar a:hover {
-            background-color: #575757;
-        }
-        .navbar a.active {
-            background-color: #04AA6D;
-        }
-        .content {
-            padding: 40px;
-            text-align: center;
-        }
-        .export-buttons {
+
+        .control-buttons.active {
             display: flex;
-            gap: 10px;
-            margin-top: 10px;
         }
+
+        .control-buttons > div {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .control-buttons input[type="checkbox"] {
+            transform: scale(1.1);
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .export-csv {
-            background-color: #4CAF50 !important;
+            background-color: #28a745 !important;
         }
-        .export-png {
-            background-color: #FF9800 !important;
-        }
+
         .export-csv:hover {
-            background-color: #45a049 !important;
+            background-color: #1e7e34 !important;
         }
+
+        .export-png {
+            background-color: #fd7e14 !important;
+        }
+
         .export-png:hover {
-            background-color: #f57c00 !important;
+            background-color: #e55a00 !important;
+        }
+
+        /* CHART AND STATS */
+        .chart-container {
+            display: none;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-container.active {
+            display: block;
+        }
+
+        .chart-container canvas {
+            max-height: 450px;
+        }
+
+        .combined-stats {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .combined-stats.active {
+            display: grid;
+        }
+
+        .stats-column {
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            border: 1px solid #e9ecef;
+        }
+
+        .stats-primary {
+            background-color: #e3f2fd;
+            border-left: 3px solid #007bff;
+        }
+
+        .stats-comparison {
+            background-color: #e8f5e8;
+            border-left: 3px solid #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .footer p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* RESPONSIVE BREAKPOINTS FOR MULTIPLE ZOOM LEVELS */
+        @media (max-width: 1400px) {
+            .months-days-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .month-checkboxes, .day-checkboxes {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .combined-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .lot-daytype-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .year-date-row {
+                grid-template-columns: 1fr;
+            }
+
+            .year-options {
+                justify-content: center;
+            }
+
+            .daytype-checkboxes {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar a {
+                padding: 14px 20px;
+                font-size: 0.9rem;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+            }
+
+            .month-checkboxes, .day-checkboxes {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+                gap: 2px 4px;
+            }
+
+            .checkbox-item, .radio-item {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar-content {
+                flex-direction: column;
+            }
+
+            .navbar a {
+                width: 100%;
+                border-bottom: none;
+                border-right: 2px solid transparent;
+            }
+
+            .navbar a:hover,
+            .navbar a.active {
+                border-right-color: #007bff;
+                border-bottom-color: transparent;
+            }
+
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .filter-panel, .comparison-panel {
+                padding: 10px;
+            }
+
+            .section-content {
+                padding: 8px 10px;
+            }
+        }
+
+        /* HIGH ZOOM LEVEL SUPPORT (125%+) */
+        @media (min-resolution: 125dpi) {
+            .checkbox-item, .radio-item {
+                gap: 6px;
+            }
+
+            .control-buttons {
+                gap: 15px;
+            }
+        }
+
+        /* VERY HIGH ZOOM SUPPORT (150%+) */
+        @media (min-resolution: 150dpi) {
+            .filter-section {
+                margin-bottom: 8px;
+            }
+
+            .section-content {
+                padding: 8px 10px;
+            }
+
+            .year-options {
+                gap: 6px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <a href="index.html">Home</a>
-        <a href="Bus visualizer 2.0.html">Platforming</a>
-        <a href="GO Train maker.html">GO Train Chart</a>
-        <a href="Parkingtool.html">Parking Usage Tool</a>
-        <a href="Parkingusertool.html">Parking User Search</a>
-    </div>
     <div class="container">
-        <h1>Parking Analysis Tool</h1>
-        <p>Created by Philippe Tremblay / AI</p>
-        <div class="upload-section" id="uploadSection">
-            <h3>Parking Data Upload</h3>
-            <p><em>Attempting to auto-load default dataset...</em></p>
-            <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
-            <p>Example: 2024-01-15, 09:30, 2.5, 1, LotA</p>
-            <input type="file" id="fileInput" accept=".csv" />
-            <p><small>Or drag and drop a CSV file here</small></p>
-        </div>
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="index.html">Home</a>
+                <a href="Bus visualizer 2.0.html">Platforming</a>
+                <a href="GO Train maker.html">GO Train Chart</a>
+                <a href="Parkingtool.html" class="active">Parking Usage</a>
+                <a href="Parkingusertool.html">Parking Search</a>
+            </div>
+        </nav>
 
-        <div class="controls" id="controls" style="display: none;">
-            <!-- Primary Dataset Panel -->
-            <div class="filter-panel">
-                <h3 class="panel-title primary">Primary Dataset</h3>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Year / Select Date</h4>
-                        <div class="radio-group" id="yearFilters">
-                            <!-- Year radio buttons will be populated here -->
-                        </div>
-                    </div>
+        <main class="main-content">
+            <header class="page-header">
+                <h1>Parking Analysis Tool</h1>
+                <p>Analyze hourly parking patterns and compare lot performance</p>
+            </header>
+
+            <section class="upload-section" id="uploadSection">
+                <h3>Parking Data Upload</h3>
+                <p><em>Attempting to auto-load default dataset...</em></p>
+                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name</strong></p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".csv" />
+                </div>
+                <p><small>Or drag and drop a CSV file here</small></p>
+            </section>
+
+            <section class="controls" id="controls">
+                <!-- Primary Dataset Panel -->
+                <div class="filter-panel">
+                    <h3 class="panel-title primary">Primary Dataset</h3>
                     
-                    <!-- ===== CALENDAR DATE SELECTION SECTION (HIDDEN BY DEFAULT) ===== -->
-                    <div class="filter-group">
-                        <div class="calendar-container hidden" id="primaryCalendarContainer">
-                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('primary')">📅</button>
-                            <div class="date-range" id="primaryDateRange">
-                                <div class="date-input-row">
-                                    <label for="selectDate">Select Date:</label>
-                                    <input type="date" id="selectDate" onchange="applyFilters()">
+                    <!-- Year/Date Selection -->
+                    <div class="filter-section">
+                        <div class="section-header">Year & Date Selection</div>
+                        <div class="section-content">
+                            <div class="year-date-row">
+                                <div class="year-options" id="yearFilters">
+                                    <!-- Year radio buttons will be populated here -->
+                                </div>
+                                <div class="calendar-container hidden" id="primaryCalendarContainer">
+                                    <button type="button" class="calendar-icon" onclick="toggleDatePicker('primary')">📅</button>
+                                    <div class="date-range" id="primaryDateRange">
+                                        <div class="date-input-row">
+                                            <label for="selectDate">Date:</label>
+                                            <input type="date" id="selectDate" onchange="applyFilters()">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="filter-group">
-                        <h4>Lot</h4>
-                        <select id="hotspotFilter" onchange="applyFilters()">
-                            <option value="all">All Hotspots</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <h4>Day Type</h4>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
-                                <label for="weekdayToggle">Weekdays</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
-                                <label for="weekendToggle">Weekends</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Months</h4>
-                        <button onclick="toggleAllMonths()">Toggle All</button>
-                        <div class="month-checkboxes" id="monthFilters"></div>
-                    </div>
-                </div>
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Days of Week</h4>
-                        <button onclick="toggleAllDays()">Toggle All</button>
-                        <div class="checkbox-group" id="dayFilters"></div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Comparison Dataset Panel -->
-            <div class="comparison-panel" id="comparisonPanel" style="display: none;">
-                <h3 class="panel-title comparison">Comparison Dataset</h3>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Year / Select Date</h4>
-                        <div class="radio-group" id="comparisonYearFilters">
-                            <!-- Comparison year radio buttons will be populated here -->
-                        </div>
-                    </div>
-                    
-                    <!-- ===== COMPARISON CALENDAR DATE SELECTION SECTION (HIDDEN BY DEFAULT) ===== -->
-                    <div class="filter-group">
-                        <div class="calendar-container hidden" id="comparisonCalendarContainer">
-                            <button type="button" class="calendar-icon" onclick="toggleDatePicker('comparison')">📅</button>
-                            <div class="date-range" id="comparisonDateRange">
-                                <div class="date-input-row">
-                                    <label for="comparisonSelectDate">Select Date:</label>
-                                    <input type="date" id="comparisonSelectDate" onchange="applyFilters()">
+                    <!-- Lot and Day Type -->
+                    <div class="filter-section">
+                        <div class="section-header">Lot & Day Type</div>
+                        <div class="section-content">
+                            <div class="lot-daytype-row">
+                                <div class="filter-group">
+                                    <select id="hotspotFilter" onchange="applyFilters()">
+                                        <option value="all">All Hotspots</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="daytype-checkboxes">
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="weekdayToggle" checked onchange="toggleWeekdays()">
+                                            <label for="weekdayToggle">Weekdays</label>
+                                        </div>
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="weekendToggle" checked onchange="toggleWeekends()">
+                                            <label for="weekendToggle">Weekends</label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="filter-group">
-                        <h4>Compare With</h4>
-                        <select id="comparisonHotspotFilter" onchange="applyFilters()">
-                            <option value="none">No Comparison</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <h4>Day Type</h4>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="comparisonWeekdayToggle" checked onchange="toggleComparisonWeekdays()">
-                                <label for="comparisonWeekdayToggle">Weekdays</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="comparisonWeekendToggle" checked onchange="toggleComparisonWeekends()">
-                                <label for="comparisonWeekendToggle">Weekends</label>
+
+                    <!-- Months and Days -->
+                    <div class="filter-section">
+                        <div class="section-header">Time Period Filters</div>
+                        <div class="section-content">
+                            <div class="months-days-row">
+                                <div>
+                                    <button class="toggle-button" onclick="toggleAllMonths()">Toggle All Months</button>
+                                    <div class="month-checkboxes" id="monthFilters"></div>
+                                </div>
+                                <div>
+                                    <button class="toggle-button" onclick="toggleAllDays()">Toggle All Days</button>
+                                    <div class="day-checkboxes" id="dayFilters"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Months</h4>
-                        <button onclick="toggleAllComparisonMonths()">Toggle All</button>
-                        <div class="month-checkboxes" id="comparisonMonthFilters"></div>
+
+                <!-- Comparison Dataset Panel -->
+                <div class="comparison-panel" id="comparisonPanel" style="display: none;">
+                    <h3 class="panel-title comparison">Comparison Dataset</h3>
+                    
+                    <!-- Year/Date Selection -->
+                    <div class="filter-section">
+                        <div class="section-header">Year & Date Selection</div>
+                        <div class="section-content">
+                            <div class="year-date-row">
+                                <div class="year-options" id="comparisonYearFilters">
+                                    <!-- Comparison year radio buttons will be populated here -->
+                                </div>
+                                <div class="calendar-container hidden" id="comparisonCalendarContainer">
+                                    <button type="button" class="calendar-icon" onclick="toggleDatePicker('comparison')">📅</button>
+                                    <div class="date-range" id="comparisonDateRange">
+                                        <div class="date-input-row">
+                                            <label for="comparisonSelectDate">Date:</label>
+                                            <input type="date" id="comparisonSelectDate" onchange="applyFilters()">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lot and Day Type -->
+                    <div class="filter-section">
+                        <div class="section-header">Lot & Day Type</div>
+                        <div class="section-content">
+                            <div class="lot-daytype-row">
+                                <div class="filter-group">
+                                    <select id="comparisonHotspotFilter" onchange="applyFilters()">
+                                        <option value="none">No Comparison</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <div class="daytype-checkboxes">
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="comparisonWeekdayToggle" checked onchange="toggleComparisonWeekdays()">
+                                            <label for="comparisonWeekdayToggle">Weekdays</label>
+                                        </div>
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="comparisonWeekendToggle" checked onchange="toggleComparisonWeekends()">
+                                            <label for="comparisonWeekendToggle">Weekends</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Months and Days -->
+                    <div class="filter-section">
+                        <div class="section-header">Time Period Filters</div>
+                        <div class="section-content">
+                            <div class="months-days-row">
+                                <div>
+                                    <button class="toggle-button" onclick="toggleAllComparisonMonths()">Toggle All Months</button>
+                                    <div class="month-checkboxes" id="comparisonMonthFilters"></div>
+                                </div>
+                                <div>
+                                    <button class="toggle-button" onclick="toggleAllComparisonDays()">Toggle All Days</button>
+                                    <div class="day-checkboxes" id="comparisonDayFilters"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="filter-row">
-                    <div class="filter-group">
-                        <h4>Days of Week</h4>
-                        <button onclick="toggleAllComparisonDays()">Toggle All</button>
-                        <div class="checkbox-group" id="comparisonDayFilters"></div>
-                    </div>
+            </section>
+
+            <section class="control-buttons" id="controlButtons">
+                <div>
+                    <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
+                    <label for="estimateTrue">Estimate True Value (x4)</label>
                 </div>
-            </div>
-        </div>
+                <button onclick="applyFilters()">Apply Filters</button>
+                <button onclick="exportCSV()" class="export-csv">Export Data (CSV)</button>
+                <button onclick="exportPNG()" class="export-png">Export Chart (PNG)</button>
+            </section>
 
-        <div class="control-buttons" id="controlButtons" style="display: none;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <input type="checkbox" id="estimateTrue" onchange="applyFilters()">
-                <label for="estimateTrue">Estimate True Value (x4)</label>
-            </div>
-            <button onclick="applyFilters()">Apply Filters</button>
-            <button onclick="exportCSV()" class="export-csv">Export Data (CSV)</button>
-            <button onclick="exportPNG()" class="export-png">Export Chart (PNG)</button>
-        </div>
+            <section class="chart-container" id="chartContainer">
+                <canvas id="parkingChart"></canvas>
+            </section>
 
-        <div class="chart-container" style="display: none;" id="chartContainer">
-            <canvas id="parkingChart"></canvas>
-        </div>
+            <section class="combined-stats" id="combinedStats">
+                <div class="stats-column stats-primary">
+                    <strong>Primary Dataset Stats:</strong>
+                    <div id="primaryStats"></div>
+                </div>
+                <div class="stats-column stats-comparison" id="comparisonStatsColumn" style="display: none;">
+                    <strong>Comparison Dataset Stats:</strong>
+                    <div id="comparisonStats"></div>
+                </div>
+            </section>
+        </main>
 
-        <div class="combined-stats" id="combinedStats" style="display: none;">
-            <div class="stats-column stats-primary">
-                <strong>Primary Dataset Stats:</strong>
-                <div id="primaryStats"></div>
-            </div>
-            <div class="stats-column stats-comparison" id="comparisonStatsColumn" style="display: none;">
-                <strong>Comparison Dataset Stats:</strong>
-                <div id="comparisonStats"></div>
-            </div>
-        </div>
+        <footer class="footer">
+            <p>Parking Analysis Tool | Created by Philippe Tremblay with AI assistance</p>
+        </footer>
     </div>
 
     <script>
@@ -513,7 +866,7 @@
                 <p>Attempting to load "2023-2025 Parking.csv" from repository...</p>
                 <div style="margin: 10px 0;">
                     <div style="width: 100%; background-color: #f0f0f0; border-radius: 4px;">
-                        <div id="loadingBar" style="width: 0%; height: 20px; background-color: #2196F3; border-radius: 4px; transition: width 0.3s;"></div>
+                        <div id="loadingBar" style="width: 0%; height: 15px; background-color: #007bff; border-radius: 4px; transition: width 0.3s;"></div>
                     </div>
                 </div>
             `;
@@ -549,9 +902,11 @@
                             
                             // Update upload section to show success
                             uploadSection.innerHTML = `
-                                <h4>Upload Different File (Optional)</h4>
-                                <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
-                                <input type="file" id="fileInput" accept=".csv" />
+                                <h3>Upload Different File (Optional)</h3>
+                                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name</strong></p>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="fileInput" accept=".csv" />
+                                </div>
                                 <p><small>Or drag and drop a different CSV file here</small></p>
                             `;
                             
@@ -575,7 +930,7 @@
                     
                     // Show info message about manual upload
                     const infoDiv = document.createElement('div');
-                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;';
+                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 14px;';
                     infoDiv.innerHTML = `
                         <strong>Default file not found</strong><br>
                         Could not automatically load "2023-2025 Parking.csv".<br>
@@ -916,11 +1271,11 @@
                 setupDateRangeInputs();
                 applyFilters();
 
-                document.getElementById('controls').style.display = 'flex';
+                document.getElementById('controls').classList.add('active');
                 document.getElementById('comparisonPanel').style.display = 'block';
-                document.getElementById('controlButtons').style.display = 'flex';
-                document.getElementById('chartContainer').style.display = 'block';
-                document.getElementById('combinedStats').style.display = 'grid';
+                document.getElementById('controlButtons').classList.add('active');
+                document.getElementById('chartContainer').classList.add('active');
+                document.getElementById('combinedStats').classList.add('active');
 
             } catch (error) {
                 showError('Error processing data: ' + error.message);
@@ -984,7 +1339,7 @@
                 div.className = 'checkbox-item';
                 div.innerHTML = `
                     <input type="checkbox" id="month${monthNum}" checked onchange="applyFilters()">
-                    <label for="month${monthNum}">${monthNames[monthNum]}</label>
+                    <label for="month${monthNum}">${monthNames[monthNum].substr(0, 3)}</label>
                 `;
                 monthFiltersDiv.appendChild(div);
             });
@@ -996,7 +1351,7 @@
                 div.className = 'checkbox-item';
                 div.innerHTML = `
                     <input type="checkbox" id="day${dayNum}" checked onchange="updateDayTypeCheckboxes(); applyFilters()">
-                    <label for="day${dayNum}">${dayNames[dayNum]}</label>
+                    <label for="day${dayNum}">${dayNames[dayNum].substr(0, 3)}</label>
                 `;
                 dayFiltersDiv.appendChild(div);
             });
@@ -1009,7 +1364,7 @@
                 div.className = 'checkbox-item';
                 div.innerHTML = `
                     <input type="checkbox" id="comparisonMonth${monthNum}" checked onchange="applyFilters()">
-                    <label for="comparisonMonth${monthNum}">${monthNames[monthNum]}</label>
+                    <label for="comparisonMonth${monthNum}">${monthNames[monthNum].substr(0, 3)}</label>
                 `;
                 comparisonMonthFiltersDiv.appendChild(div);
             });
@@ -1021,7 +1376,7 @@
                 div.className = 'checkbox-item';
                 div.innerHTML = `
                     <input type="checkbox" id="comparisonDay${dayNum}" checked onchange="updateComparisonDayTypeCheckboxes(); applyFilters()">
-                    <label for="comparisonDay${dayNum}">${dayNames[dayNum]}</label>
+                    <label for="comparisonDay${dayNum}">${dayNames[dayNum].substr(0, 3)}</label>
                 `;
                 comparisonDayFiltersDiv.appendChild(div);
             });
@@ -1192,16 +1547,16 @@
                 let matchesDate = true;
                 
                 if (isSelectDate) {
-            // Use specific date selection - only data from that exact date
-            if (selectDateInput) {
-                const [year, month, day] = selectDateInput.split('-');
-                const selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-                matchesDate = isSameDate(row.date, selectedDate);
-            } else {
-                // If no date selected in select date mode, show no data
-                matchesDate = false;
-            }
-        } else {
+                    // Use specific date selection - only data from that exact date
+                    if (selectDateInput) {
+                        const [year, month, day] = selectDateInput.split('-');
+                        const selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        matchesDate = isSameDate(row.date, selectedDate);
+                    } else {
+                        // If no date selected in select date mode, show no data
+                        matchesDate = false;
+                    }
+                } else {
                     // Use year filter
                     matchesYear = row.date.getFullYear() === Number(selectedYear);
                 }
@@ -1245,17 +1600,16 @@
                     let matchesDate = true;
                     
                     if (isComparisonSelectDate) {
-    // Use specific date selection - only data from that exact date
-    if (comparisonSelectDateInput) {
-        const [compYear, compMonth, compDay] = comparisonSelectDateInput.split('-');
-        const selectedDate = new Date(parseInt(compYear), parseInt(compMonth) - 1, parseInt(compDay));
-        matchesDate = isSameDate(row.date, selectedDate);
-    } else {
-        // If no date selected in select date mode, show no data
-        matchesDate = false;
-    }
-}
- else {
+                        // Use specific date selection - only data from that exact date
+                        if (comparisonSelectDateInput) {
+                            const [compYear, compMonth, compDay] = comparisonSelectDateInput.split('-');
+                            const selectedDate = new Date(parseInt(compYear), parseInt(compMonth) - 1, parseInt(compDay));
+                            matchesDate = isSameDate(row.date, selectedDate);
+                        } else {
+                            // If no date selected in select date mode, show no data
+                            matchesDate = false;
+                        }
+                    } else {
                         // Use year filter
                         matchesYear = row.date.getFullYear() === Number(comparisonSelectedYear);
                     }
@@ -1426,44 +1780,43 @@
             const dateRange = getDateRange(filteredData);
             const avgSessionsPerDay = uniqueDays > 0 ? (totalSessions / uniqueDays).toFixed(1) : '0.0';
 
-// Calculate max cars and peak time from raw data
-const maxCars = Math.max(...processedData.map(d => d.normalizedCount));
-const peakDataPoint = processedData.find(d => d.normalizedCount === maxCars);
-const peakTimeStr = peakDataPoint ? peakDataPoint.time : 'N/A';
+            // Calculate max cars and peak time from raw data
+            const maxCars = Math.max(...processedData.map(d => d.normalizedCount));
+            const peakDataPoint = processedData.find(d => d.normalizedCount === maxCars);
+            const peakTimeStr = peakDataPoint ? peakDataPoint.time : 'N/A';
 
-if (gaussianParams) {
-    const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
-    const rSquared = calculateRSquared().toFixed(3);
+            if (gaussianParams) {
+                const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
+                const rSquared = calculateRSquared().toFixed(3);
 
-    primaryStatsDiv.innerHTML = `
-Primary Dataset:<br>
-${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
-Total Sessions: ${totalSessions}<br>
-Unique Days: ${uniqueDays}<br>
-Date Range: ${dateRange}<br>
-Average Sessions per Day: ${avgSessionsPerDay}<br>
-Selected Lots: ${hotspotDisplay}<br>
-Peak Occupancy Time: ${peakTimeStr}<br>
-Max Cars: ${maxCars.toFixed(1)}<br>
-<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
-<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
+                primaryStatsDiv.innerHTML = `
+                    Primary Dataset:<br>
+                    ${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
+                    Total Sessions: ${totalSessions}<br>
+                    Unique Days: ${uniqueDays}<br>
+                    Date Range: ${dateRange}<br>
+                    Average Sessions per Day: ${avgSessionsPerDay}<br>
+                    Selected Lots: ${hotspotDisplay}<br>
+                    Peak Occupancy Time: ${peakTimeStr}<br>
+                    Max Cars: ${maxCars.toFixed(1)}<br>
+                    <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
+                    <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
                 `;
-} else {
-    primaryStatsDiv.innerHTML = `
-Primary Dataset:<br>
-${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
-Total Sessions: ${totalSessions}<br>
-Unique Days: ${uniqueDays}<br>
-Date Range: ${dateRange}<br>
-Average Sessions per Day: ${avgSessionsPerDay}<br>
-Selected Lots: ${hotspotDisplay}<br>
-Peak Occupancy Time: ${peakTimeStr}<br>
-Max Cars: ${maxCars.toFixed(1)}<br>
-<br>
-<strong>Insufficient data for Normal Distribution</strong>
+            } else {
+                primaryStatsDiv.innerHTML = `
+                    Primary Dataset:<br>
+                    ${isSelectDate ? 'Selected Date' : `Year: ${selectedYear}`}<br>
+                    Total Sessions: ${totalSessions}<br>
+                    Unique Days: ${uniqueDays}<br>
+                    Date Range: ${dateRange}<br>
+                    Average Sessions per Day: ${avgSessionsPerDay}<br>
+                    Selected Lots: ${hotspotDisplay}<br>
+                    Peak Occupancy Time: ${peakTimeStr}<br>
+                    Max Cars: ${maxCars.toFixed(1)}<br>
+                    <br>
+                    <strong>Insufficient data for Normal Distribution</strong>
                 `;
-}
-
+            }
 
             // Comparison dataset filters & data
             const comparisonHotspot = document.getElementById('comparisonHotspotFilter').value;
@@ -1517,43 +1870,42 @@ Max Cars: ${maxCars.toFixed(1)}<br>
                     : '0.0';
 
                 // Calculate max cars and peak time from raw comparison data
-const comparisonMaxCars = comparisonProcessedData.length > 0 ? Math.max(...comparisonProcessedData.map(d => d.normalizedCount)) : 0;
-const comparisonPeakDataPoint = comparisonProcessedData.find(d => d.normalizedCount === comparisonMaxCars);
-const cPeakTimeStr = comparisonPeakDataPoint ? comparisonPeakDataPoint.time : 'N/A';
+                const comparisonMaxCars = comparisonProcessedData.length > 0 ? Math.max(...comparisonProcessedData.map(d => d.normalizedCount)) : 0;
+                const comparisonPeakDataPoint = comparisonProcessedData.find(d => d.normalizedCount === comparisonMaxCars);
+                const cPeakTimeStr = comparisonPeakDataPoint ? comparisonPeakDataPoint.time : 'N/A';
 
-if (comparisonGaussianParams) {
-    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
-    const cRSquared = calculateComparisonRSquared().toFixed(3);
+                if (comparisonGaussianParams) {
+                    const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
+                    const cRSquared = calculateComparisonRSquared().toFixed(3);
 
-    comparisonHtml = `
-Comparison Dataset:<br>
-${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
-Total Sessions: ${comparisonTotalSessions}<br>
-Unique Days: ${comparisonUniqueDays}<br>
-Date Range: ${comparisonDateRange}<br>
-Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
-Selected Lots: ${comparisonHotspotDisplay}<br>
-Peak Occupancy Time: ${cPeakTimeStr}<br>
-Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
-<a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
-<a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
+                    comparisonHtml = `
+                        Comparison Dataset:<br>
+                        ${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
+                        Total Sessions: ${comparisonTotalSessions}<br>
+                        Unique Days: ${comparisonUniqueDays}<br>
+                        Date Range: ${comparisonDateRange}<br>
+                        Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+                        Selected Lots: ${comparisonHotspotDisplay}<br>
+                        Peak Occupancy Time: ${cPeakTimeStr}<br>
+                        Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
+                        <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
+                        <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
                     `;
-} else {
-    comparisonHtml = `
-Comparison Dataset:<br>
-${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
-Total Sessions: ${comparisonTotalSessions}<br>
-Unique Days: ${comparisonUniqueDays}<br>
-Date Range: ${comparisonDateRange}<br>
-Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
-Selected Lots: ${comparisonHotspotDisplay}<br>
-Peak Occupancy Time: ${cPeakTimeStr}<br>
-Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
-<br>
-<strong>Insufficient data for Normal Distribution</strong>
+                } else {
+                    comparisonHtml = `
+                        Comparison Dataset:<br>
+                        ${isComparisonSelectDate ? 'Selected Date' : `Year: ${comparisonSelectedYear}`}<br>
+                        Total Sessions: ${comparisonTotalSessions}<br>
+                        Unique Days: ${comparisonUniqueDays}<br>
+                        Date Range: ${comparisonDateRange}<br>
+                        Average Sessions per Day: ${comparisonAvgSessionsPerDay}<br>
+                        Selected Lots: ${comparisonHotspotDisplay}<br>
+                        Peak Occupancy Time: ${cPeakTimeStr}<br>
+                        Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
+                        <br>
+                        <strong>Insufficient data for Normal Distribution</strong>
                     `;
-}
-
+                }
             }
 
             comparisonStatsDiv.innerHTML = comparisonHtml;
@@ -1603,7 +1955,7 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error';
             errorDiv.textContent = message;
-            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('controls'));
+            document.querySelector('.main-content').insertBefore(errorDiv, document.getElementById('controls'));
             setTimeout(() => errorDiv.remove(), 5000);
         }
 
@@ -1665,8 +2017,8 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         {
                             label: 'Primary - Average Cars Parked',
                             data: [],
-                            borderColor: '#2196F3',
-                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
                             borderWidth: 2,
                             pointRadius: 1,
                             pointHoverRadius: 4,
@@ -1675,7 +2027,7 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         {
                             label: 'Primary - Normal Distribution',
                             data: [],
-                            borderColor: '#FF5722',
+                            borderColor: '#dc3545',
                             backgroundColor: 'transparent',
                             borderWidth: 2,
                             borderDash: [5, 5],
@@ -1686,8 +2038,8 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         {
                             label: 'Comparison - Average Cars Parked',
                             data: [],
-                            borderColor: '#4CAF50',
-                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
                             borderWidth: 2,
                             pointRadius: 1,
                             pointHoverRadius: 4,
@@ -1697,7 +2049,7 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         {
                             label: 'Comparison - Normal Distribution',
                             data: [],
-                            borderColor: '#E91E63',
+                            borderColor: '#e83e8c',
                             backgroundColor: 'transparent',
                             borderWidth: 2,
                             borderDash: [5, 5],
@@ -1719,8 +2071,8 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Parking Occupancy Analysis from CSV Data',
-                            font: { size: 16, weight: 'bold' }
+                            text: 'Parking Occupancy Analysis with Statistical Modeling',
+                            font: { size: 15, weight: 'bold' }
                         },
                         legend: {
                             display: true,
@@ -1764,4 +2116,3 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
     </script>
 </body>
 </html>
-
