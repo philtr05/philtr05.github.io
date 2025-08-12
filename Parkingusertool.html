@@ -1,363 +1,683 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>User Parking Behavior Analysis</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Parking Behavior Analysis | Phil's Transit Toolkit</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: #f8f9fa;
+            color: #333;
+        }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
         }
-        .upload-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            text-align: center;
+
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .upload-section.dragover {
-            border-color: #2196F3;
-            background-color: #f0f8ff;
-        }
-        .histogram-section {
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .histogram-controls {
+
+        .navbar-content {
             display: flex;
-            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .navbar a {
+            color: #495057;
+            padding: 20px 28px;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+        }
+
+        .navbar a:hover {
+            color: #212529;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .navbar a.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .page-header p {
+            font-size: 1.1rem;
+            color: #6c757d;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+            transform: scale(1.01);
+        }
+
+        .upload-section h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: #212529;
+            font-weight: 600;
+        }
+
+        .upload-section p {
+            color: #6c757d;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .upload-section em {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .file-input-wrapper {
+            margin: 15px 0;
+        }
+
+        #fileInput {
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .section-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+            margin: 0;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .histogram-controls, .search-controls {
+            display: flex;
+            gap: 15px;
             align-items: center;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
-        .histogram-controls label {
-            font-weight: bold;
-            margin-right: 5px;
-        }
-        .histogram-controls select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .search-section {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            display: none;
-        }
-        .search-controls {
+
+        .control-group {
             display: flex;
-            gap: 15px;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 8px;
         }
-        .search-controls input, .search-controls select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            min-width: 60px;
         }
-        .search-controls button {
+
+        .control-group select, .control-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+            transition: border-color 0.2s ease;
+        }
+
+        .control-group select:focus, .control-group input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .search-controls input {
+            min-width: 300px;
+        }
+
+        .btn {
             padding: 8px 16px;
-            background-color: #2196F3;
+            background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
-        .search-controls button:hover {
-            background-color: #1976D2;
+
+        .btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
         }
-        .table-section {
-            margin: 20px 0;
-            display: none;
+
+        .btn-secondary {
+            background-color: #6c757d;
         }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            padding: 20px;
+            height: 450px;
+        }
+
+        #histogramChart {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .summary-table, .user-details-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .summary-table th, .summary-table td,
+        .user-details-table th, .user-details-table td {
+            border: 1px solid #dee2e6;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .summary-table th, .user-details-table th {
+            background-color: #f8f9fa;
+            cursor: pointer;
+            position: relative;
+            padding-right: 35px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .summary-table th:hover, .user-details-table th:hover {
+            background-color: #e9ecef;
+        }
+
+        .summary-table tr:hover, .user-details-table tr:hover {
+            background-color: #f8f9fa !important;
+            transition: background-color 0.2s ease;
+        }
+
+        .summary-table tbody tr {
+            cursor: pointer;
+        }
+
+        .sort-arrow {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #007bff;
+        }
+
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 15px;
             margin-top: 20px;
+            padding: 15px;
         }
+
         .pagination button {
-            padding: 8px 12px;
-            background-color: #2196F3;
+            padding: 8px 16px;
+            background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
+
         .pagination button:hover:not(:disabled) {
-            background-color: #1976D2;
+            background-color: #0056b3;
+            transform: translateY(-1px);
         }
+
         .pagination button:disabled {
-            background-color: #ccc;
+            background-color: #dee2e6;
+            color: #6c757d;
             cursor: not-allowed;
+            transform: none;
         }
+
         .pagination span {
-            font-weight: bold;
+            font-weight: 600;
+            color: #495057;
         }
-        .summary-table, .user-details-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .summary-table th, .summary-table td,
-        .user-details-table th, .user-details-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .summary-table th, .user-details-table th {
-            background-color: #f2f2f2;
-            cursor: pointer;
-            position: relative;
-            padding-right: 30px; /* Extra space for sort arrow */
-            min-width: 100px; /* Minimum width to prevent overlap */
-        }
-        .summary-table th:hover, .user-details-table th:hover {
-            background-color: #e8e8e8;
-        }
-        .summary-table tr:hover, .user-details-table tr:hover {
-            background-color: #e3f2fd !important;
-            transition: background-color 0.2s ease;
-        }
-        .summary-table tbody tr {
-            cursor: pointer;
-        }
-        .sort-arrow {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-        }
+
         .user-details {
             display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
+            margin-top: 25px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
         }
+
+        .user-details.active {
+            display: block;
+        }
+
+        .user-details-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .user-details-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #212529;
+            margin: 0;
+        }
+
+        .user-details-content {
+            padding: 20px;
+        }
+
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
+
         .stat-card {
-            background: white;
+            background: #f8f9fa;
             padding: 15px;
             border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            text-align: center;
         }
+
         .stat-card h4 {
-            margin: 0 0 10px 0;
-            color: #333;
+            margin: 0 0 8px 0;
+            color: #495057;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2196F3;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #007bff;
         }
-        .chart-container {
-            margin: 20px 0;
-            padding: 20px;
+
+        .chart-section {
+            margin: 25px 0;
             background: white;
+            padding: 20px;
             border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
         }
+
+        .chart-section h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #212529;
+        }
+
         .chart-controls {
             margin-bottom: 15px;
             display: flex;
             gap: 10px;
             align-items: center;
         }
+
         .chart-controls select {
-            padding: 5px;
-            border: 1px solid #ccc;
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
             border-radius: 4px;
+            font-size: 0.85rem;
         }
-        .error {
-            color: #d32f2f;
-            background-color: #ffebee;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
+
         .highlight-row {
             background-color: #e3f2fd !important;
         }
-        .navbar {
-            background-color: #333;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            margin-top: -20px;
-            margin-bottom: 10px ;
-            margin-left: -20px;
-            margin-right: -20px;
-        }
-        .navbar a {
-            color: white;
-            padding: 14px 20px;
-            text-decoration: none;
-            text-align: center;
-            display: block;
-            transition: background 0.3s;
-        }
-        .navbar a:hover {
-            background-color: #575757;
-        }
-        .histogram-chart-container {
-            background: white;
-            padding: 20px;
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 12px 16px;
             border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            height: 400px;
-            width: calc(100% - 40px);
-            margin-left: 0;
-            margin-right: 0;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+            font-weight: 500;
         }
-        #histogramChart {
-            width: 100% !important;
-            height: 100% !important;
+
+        .footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .footer p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar a {
+                padding: 14px 20px;
+                font-size: 0.9rem;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .histogram-controls, .search-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                justify-content: space-between;
+            }
+
+            .search-controls input {
+                min-width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-container {
+                margin-left: -20px;
+                margin-right: -20px;
+            }
+
+            .summary-table, .user-details-table {
+                font-size: 0.8rem;
+            }
+
+            .summary-table th, .summary-table td,
+            .user-details-table th, .user-details-table td {
+                padding: 8px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar-content {
+                flex-direction: column;
+            }
+
+            .navbar a {
+                width: 100%;
+                border-bottom: none;
+                border-right: 2px solid transparent;
+            }
+
+            .navbar a:hover,
+            .navbar a.active {
+                border-right-color: #007bff;
+                border-bottom-color: transparent;
+            }
+
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .pagination {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <a href="index.html">Home</a>
-        <a href="Bus visualizer 2.0.html">Platforming</a>
-        <a href="GO Train maker.html">GO Train Chart</a>
-        <a href="Parkingtool.html">Parking Usage Tool</a>
-        <a href="Parkingusertool.html">Parking User Search</a>
-    </div>
     <div class="container">
-        <h1>User Parking Behavior Analysis</h1>
-        <p>Analyze parking patterns by license plate and user behavior</p>
-        
-        <div class="upload-section" id="uploadSection">
-            <h3>Upload CSV File</h3>
-            <p><em>Attempting to auto-load default dataset...</em></p>
-            <p>Expected columns: HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</p>
-            <input type="file" id="fileInput" accept=".csv" />
-            <p><small>Or drag and drop a CSV file here</small></p>
-        </div>
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="index.html">Home</a>
+                <a href="Bus visualizer 2.0.html">Platforming</a>
+                <a href="GO Train maker.html">GO Train Chart</a>
+                <a href="Parkingtool.html">Parking Usage</a>
+                <a href="Parkingusertool.html" class="active">Parking Search</a>
+            </div>
+        </nav>
 
-        <div class="histogram-section" id="histogramSection">
-            <h3>Parking Usage Overview</h3>
-            <div class="histogram-controls">
-                <div>
-                    <label for="yearSelect">Year:</label>
-                    <select id="yearSelect" onchange="updateHistogram()">
-                        <option value="all">All Years (Average)</option>
-                        <option value="2023">2023</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
+        <main class="main-content">
+            <header class="page-header">
+                <h1>User Parking Behavior Analysis</h1>
+                <p>Explore user analytics and yearly trends</p>
+            </header>
+
+            <section class="upload-section" id="uploadSection">
+                <h3>Parking Data Upload</h3>
+                <p><em>Attempting to auto-load default dataset...</em></p>
+                <p>Expected columns: <strong>HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</strong></p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".csv" />
                 </div>
-                <div>
-                    <label for="periodSelect">Group by:</label>
-                    <select id="periodSelect" onchange="updateHistogram()">
-                        <option value="day">Day</option>
-                        <option value="week">Week</option>
-                        <option value="month">Month</option>
-                    </select>
+                <p><small>Or drag and drop a CSV file here</small></p>
+            </section>
+
+            <section class="section" id="histogramSection">
+                <div class="section-header">
+                    <h3>Parking Usage Overview</h3>
                 </div>
-            </div>
-            <div class="histogram-chart-container">
-                <canvas id="histogramChart"></canvas>
-            </div>
-        </div>
-
-        <div class="search-section" id="searchSection">
-            <h3>Search Users</h3>
-            <div class="search-controls">
-                <input type="text" id="searchInput" placeholder="Enter license plate, user ID, or vehicle make...">
-                <button onclick="searchUser()">Search</button>
-                <button onclick="clearSearch()">Clear</button>
-            </div>
-        </div>
-
-        <div class="table-section" id="tableSection">
-            <h3>User Summary</h3>
-            <table class="summary-table" id="summaryTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTableByColumn('plate')">License Plate <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('user')">User ID <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('make')">Vehicle Make <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('instances')">Parking Instances <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('totalTime')">Total Time (hrs) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('totalSpend')">Total Spend ($) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('avgSpend')">Avg Spend/Session ($) <span class="sort-arrow"></span></th>
-                        <th onclick="sortTableByColumn('avgTime')">Avg Time/Session (hrs) <span class="sort-arrow"></span></th>
-                    </tr>
-                </thead>
-                <tbody id="summaryTableBody">
-                </tbody>
-            </table>
-            
-            <div class="pagination">
-                <button id="prevBtn" onclick="previousPage()">Previous</button>
-                <span id="pageInfo">Page 1 of 1</span>
-                <button id="nextBtn" onclick="nextPage()">Next</button>
-            </div>
-        </div>
-
-        <div class="user-details" id="userDetails">
-            <h3 id="userDetailsTitle">User Details</h3>
-            <div class="stats-grid" id="statsGrid">
-            </div>
-            
-            <div class="chart-container">
-                <h4>Usage Pattern</h4>
-                <div class="chart-controls">
-                    <label>View by:</label>
-                    <select id="chartPeriod" onchange="updateChart()">
-                        <option value="month">Month</option>
-                        <option value="year">Year</option>
-                    </select>
+                <div class="section-content">
+                    <div class="histogram-controls">
+                        <div class="control-group">
+                            <label for="yearSelect">Year:</label>
+                            <select id="yearSelect" onchange="updateHistogram()">
+                                <option value="all">All Years (Average)</option>
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="periodSelect">Group by:</label>
+                            <select id="periodSelect" onchange="updateHistogram()">
+                                <option value="day">Day</option>
+                                <option value="week">Week</option>
+                                <option value="month">Month</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
                 </div>
-                <canvas id="usageChart" width="400" height="200"></canvas>
-            </div>
-            
-            <h4>Individual Parking Sessions</h4>
-            <table class="user-details-table" id="userDetailsTable">
-                <thead>
-                    <tr>
-                        <th>Date/Time</th>
-                        <th>HotSpot #</th>
-                        <th>City #</th>
-                        <th>Duration (hrs)</th>
-                        <th>Total ($)</th>
-                    </tr>
-                </thead>
-                <tbody id="userDetailsTableBody">
-                </tbody>
-            </table>
-        </div>
+            </section>
+
+            <section class="section" id="searchSection">
+                <div class="section-header">
+                    <h3>Search Users</h3>
+                </div>
+                <div class="section-content">
+                    <div class="search-controls">
+                        <div class="control-group">
+                            <input type="text" id="searchInput" placeholder="Enter license plate, user ID, or vehicle make...">
+                        </div>
+                        <button class="btn" onclick="searchUser()">Search</button>
+                        <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="tableSection">
+                <div class="section-header">
+                    <h3>User Summary</h3>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table class="summary-table" id="summaryTable">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTableByColumn('plate')">License Plate <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('user')">User ID <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('make')">Vehicle Make <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('instances')">Parking Instances <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('totalTime')">Total Time (hrs) <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('totalSpend')">Total Spend ($) <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('avgSpend')">Avg Spend/Session ($) <span class="sort-arrow"></span></th>
+                                    <th onclick="sortTableByColumn('avgTime')">Avg Time/Session (hrs) <span class="sort-arrow"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination">
+                        <button id="prevBtn" onclick="previousPage()">Previous</button>
+                        <span id="pageInfo">Page 1 of 1</span>
+                        <button id="nextBtn" onclick="nextPage()">Next</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="user-details" id="userDetails">
+                <div class="user-details-header">
+                    <h3 id="userDetailsTitle">User Details</h3>
+                </div>
+                <div class="user-details-content">
+                    <div class="stats-grid" id="statsGrid"></div>
+                    
+                    <div class="chart-section">
+                        <h4>Usage Pattern</h4>
+                        <div class="chart-controls">
+                            <label>View by:</label>
+                            <select id="chartPeriod" onchange="updateChart()">
+                                <option value="month">Month</option>
+                                <option value="year">Year</option>
+                            </select>
+                        </div>
+                        <canvas id="usageChart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <h4 style="margin: 25px 0 15px 0; font-size: 1.1rem; font-weight: 600;">Individual Parking Sessions</h4>
+                    <div class="table-container">
+                        <table class="user-details-table" id="userDetailsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>HotSpot #</th>
+                                    <th>City #</th>
+                                    <th>Duration (hrs)</th>
+                                    <th>Total ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userDetailsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>User Parking Behavior Analysis | Created by Philippe Tremblay with AI assistance</p>
+        </footer>
     </div>
 
     <script>
@@ -381,7 +701,7 @@
                 <p>Attempting to load "UserData2023-2025.csv" from repository...</p>
                 <div style="margin: 10px 0;">
                     <div style="width: 100%; background-color: #f0f0f0; border-radius: 4px;">
-                        <div id="loadingBar" style="width: 0%; height: 20px; background-color: #2196F3; border-radius: 4px; transition: width 0.3s;"></div>
+                        <div id="loadingBar" style="width: 0%; height: 15px; background-color: #007bff; border-radius: 4px; transition: width 0.3s;"></div>
                     </div>
                 </div>
             `;
@@ -417,9 +737,11 @@
                             
                             // Update upload section to show success
                             uploadSection.innerHTML = `
-                                <h4>Upload Different File (Optional)</h4>
-                                <p>Expected columns: HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</p>
-                                <input type="file" id="fileInput" accept=".csv" />
+                                <h3>Upload Different File (Optional)</h3>
+                                <p>Expected columns: <strong>HotSpot #, City #, Start Time, Time, User, Plate, Make, Amount, Tax, Total, Length</strong></p>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="fileInput" accept=".csv" />
+                                </div>
                                 <p><small>Or drag and drop a different CSV file here</small></p>
                             `;
                             
@@ -443,7 +765,7 @@
                     
                     // Show info message about manual upload
                     const infoDiv = document.createElement('div');
-                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;';
+                    infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 14px;';
                     infoDiv.innerHTML = `
                         <strong>Default file not found</strong><br>
                         Could not automatically load "UserData2023-2025.csv".<br>
@@ -613,16 +935,16 @@
                     currentPage = 1;
                     displaySummaryTable();
                     updatePagination();
-                    document.getElementById('searchSection').style.display = 'block';
-                    document.getElementById('tableSection').style.display = 'block';
+                    document.getElementById('searchSection').classList.add('active');
+                    document.getElementById('tableSection').classList.add('active');
                 } else {
-                    document.getElementById('searchSection').style.display = 'none';
-                    document.getElementById('tableSection').style.display = 'none';
+                    document.getElementById('searchSection').classList.remove('active');
+                    document.getElementById('tableSection').classList.remove('active');
                 }
 
                 // Always generate histogram with all data
                 generateHistogram();
-                document.getElementById('histogramSection').style.display = 'block';
+                document.getElementById('histogramSection').classList.add('active');
 
             } catch (error) {
                 showError('Error processing data: ' + error.message);
@@ -735,8 +1057,8 @@
                         datasets: [{
                             label: 'Parking Instances',
                             data: [0],
-                            backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                            borderColor: 'rgba(76, 175, 80, 1)',
+                            backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                            borderColor: 'rgba(0, 123, 255, 1)',
                             borderWidth: 1
                         }]
                     },
@@ -976,8 +1298,8 @@
                     datasets: [{
                         label: year === 'all' ? 'Average Parking Instances' : 'Parking Instances',
                         data: data,
-                        backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                        borderColor: 'rgba(76, 175, 80, 1)',
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -1006,18 +1328,11 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: `Parking Usage ${year === 'all' ? 'All Years (Average)' : year} - Grouped by ${period.charAt(0).toUpperCase() + period.slice(1)}`
+                            text: `Parking Usage ${year === 'all' ? 'All Years (Average)' : year} - Grouped by ${period.charAt(0).toUpperCase() + period.slice(1)}`,
+                            font: { size: 14, weight: 'bold' }
                         },
                         legend: {
                             display: false
-                        }
-                    },
-                    layout: {
-                        padding: {
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            bottom: 0
                         }
                     }
                 }
@@ -1267,7 +1582,7 @@
                 tbody.appendChild(row);
             });
 
-            document.getElementById('userDetails').style.display = 'block';
+            document.getElementById('userDetails').classList.add('active');
             document.getElementById('userDetails').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -1292,8 +1607,8 @@
                         datasets: [{
                             label: 'Usage Count',
                             data: [0],
-                            backgroundColor: 'rgba(33, 150, 243, 0.6)',
-                            borderColor: 'rgba(33, 150, 243, 1)',
+                            backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                            borderColor: 'rgba(0, 123, 255, 1)',
                             borderWidth: 1
                         }]
                     },
@@ -1346,8 +1661,8 @@
                     datasets: [{
                         label: 'Usage Count',
                         data: data,
-                        backgroundColor: 'rgba(33, 150, 243, 0.6)',
-                        borderColor: 'rgba(33, 150, 243, 1)',
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -1364,7 +1679,8 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: `Usage Pattern by ${period.charAt(0).toUpperCase() + period.slice(1)}`
+                            text: `Usage Pattern by ${period.charAt(0).toUpperCase() + period.slice(1)}`,
+                            font: { size: 14, weight: 'bold' }
                         }
                     }
                 }
@@ -1385,7 +1701,7 @@
 
         function clearSearch() {
             document.getElementById('searchInput').value = '';
-            document.getElementById('userDetails').style.display = 'none';
+            document.getElementById('userDetails').classList.remove('active');
             
             const rows = document.querySelectorAll('#summaryTableBody tr');
             rows.forEach(row => row.classList.remove('highlight-row'));
@@ -1395,7 +1711,7 @@
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error';
             errorDiv.textContent = message;
-            document.querySelector('.container').insertBefore(errorDiv, document.getElementById('histogramSection'));
+            document.querySelector('.main-content').insertBefore(errorDiv, document.getElementById('histogramSection'));
             setTimeout(() => errorDiv.remove(), 5000);
         }
 
