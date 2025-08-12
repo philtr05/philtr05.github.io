@@ -834,34 +834,65 @@
                     data = sortedKeys.map(key => usageMap[key]);
                     
                 } else if (period === 'week') {
-                    filteredData.forEach(record => {
-                        const date = record.parsedDate;
-                        const startOfWeek = new Date(date);
-                        startOfWeek.setDate(date.getDate() - date.getDay());
-                        if (startOfWeek.getFullYear() === selectedYear) {
-                            const key = startOfWeek.toISOString().split('T')[0];
-                            usageMap[key] = (usageMap[key] || 0) + 1;
-                        }
-                    });
-                    
-                    const sortedKeys = Object.keys(usageMap).sort();
-                    labels = sortedKeys.map(key => {
-                        const startDate = new Date(key);
-                        const endDate = new Date(startDate);
-                        endDate.setDate(startDate.getDate() + 6);
-                        
-                        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
-                        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
-                        const startDay = startDate.getDate();
-                        const endDay = endDate.getDate();
-                        
-                        if (startMonth === endMonth) {
-                            return `${startMonth} ${startDay}-${endDay}`;
-                        } else {
-                            return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-                        }
-                    });
-                    data = sortedKeys.map(key => usageMap[key]);
+    // Initialize all weeks for the specific year first
+    const startOfYear = new Date(selectedYear, 0, 1);
+    
+    // Find the first Sunday of the year (week starts on Sunday)
+    const firstSunday = new Date(startOfYear);
+    const dayOfWeek = startOfYear.getDay();
+    if (dayOfWeek !== 0) {
+        firstSunday.setDate(startOfYear.getDate() + (7 - dayOfWeek));
+    }
+    
+    // Generate all 53 possible weeks for the year
+    const allWeekKeys = [];
+    for (let i = 0; i < 53; i++) {
+        const weekStart = new Date(firstSunday);
+        weekStart.setDate(firstSunday.getDate() + (i * 7));
+        
+        // Stop if we've gone into the next year
+        if (weekStart.getFullYear() > selectedYear) {
+            break;
+        }
+        
+        const key = weekStart.toISOString().split('T')[0];
+        allWeekKeys.push(key);
+        usageMap[key] = 0; // Initialize with 0
+    }
+    
+    // Now populate with actual data
+    filteredData.forEach(record => {
+        const date = record.parsedDate;
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - date.getDay());
+        
+        if (startOfWeek.getFullYear() === selectedYear) {
+            const key = startOfWeek.toISOString().split('T')[0];
+            if (usageMap.hasOwnProperty(key)) {
+                usageMap[key] = (usageMap[key] || 0) + 1;
+            }
+        }
+    });
+    
+    // Generate labels and data for all weeks
+    labels = allWeekKeys.map(key => {
+        const startDate = new Date(key);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        
+        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+        const startDay = startDate.getDate();
+        const endDay = endDate.getDate();
+        
+        if (startMonth === endMonth) {
+            return `${startMonth} ${startDay}-${endDay}`;
+        } else {
+            return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+        }
+    });
+    data = allWeekKeys.map(key => usageMap[key]);
+
                     
                 } else { // month
                     // Initialize all months for the specific year
@@ -1324,4 +1355,5 @@
     </script>
 </body>
 </html>
+
 
