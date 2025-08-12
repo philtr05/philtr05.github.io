@@ -320,7 +320,7 @@
         <p>Created by Philippe Tremblay / AI</p>
         <div class="upload-section" id="uploadSection">
             <h3>Parking Data Upload</h3>
-            <p>🔄 <em>Attempting to auto-load default dataset...</em></p>
+            <p><em>Attempting to auto-load default dataset...</em></p>
             <p>Expected format: Date, Time, Length (hours), Hotspot #, Lot Name</p>
             <p>Example: 2024-01-15, 09:30, 2.5, 1, LotA</p>
             <input type="file" id="fileInput" accept=".csv" />
@@ -577,7 +577,7 @@
                     const infoDiv = document.createElement('div');
                     infoDiv.style.cssText = 'background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;';
                     infoDiv.innerHTML = `
-                        <strong>ℹ️ Default file not found</strong><br>
+                        <strong>Default file not found</strong><br>
                         Could not automatically load "2023-2025 Parking.csv".<br>
                         Please upload your CSV file manually using the form above.
                     `;
@@ -1764,3 +1764,4 @@ Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
     </script>
 </body>
 </html>
+
