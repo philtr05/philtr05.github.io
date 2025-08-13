@@ -181,13 +181,13 @@
             color: #28a745;
         }
 
-        /* COMPACT FILTER SECTIONS */
+        /* COMPACT FILTER SECTIONS - FIXED OVERFLOW */
         .filter-section {
             margin-bottom: 12px;
             background: white;
             border-radius: 6px;
             border: 1px solid #dee2e6;
-            overflow: hidden;
+            overflow: visible; /* Changed from hidden to visible */
         }
 
         .filter-section:last-child {
@@ -207,6 +207,7 @@
 
         .section-content {
             padding: 10px 12px;
+            overflow: visible; /* Ensure content doesn't clip */
         }
 
         /* YEAR AND DATE SELECTION - HORIZONTAL LAYOUT */
@@ -215,6 +216,7 @@
             grid-template-columns: 1fr auto;
             gap: 12px;
             align-items: start;
+            overflow: visible; /* Ensure grid doesn't clip */
         }
 
         .year-options {
@@ -241,7 +243,7 @@
             user-select: none;
         }
 
-        /* CALENDAR CONTROLS */
+        /* CALENDAR CONTROLS - FIXED */
         .calendar-container {
             position: relative;
         }
@@ -266,15 +268,15 @@
         }
 
         .date-range {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            z-index: 1000;
+            position: fixed; /* Changed from absolute to fixed */
+            top: auto;
+            right: auto;
+            z-index: 9999; /* Increased z-index significantly */
             background: white;
             border: 1px solid #dee2e6;
             border-radius: 6px;
             padding: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
             display: none;
             min-width: 200px;
         }
@@ -940,9 +942,11 @@
                 });
         }
 
-        // ===== CALENDAR DATE PICKER FUNCTIONS =====
+        // ===== CALENDAR DATE PICKER FUNCTIONS - FIXED =====
         function toggleDatePicker(type) {
             const dateRange = document.getElementById(type + 'DateRange');
+            const calendarIcon = document.querySelector(`#${type}CalendarContainer .calendar-icon`);
+            
             if (dateRange.classList.contains('show')) {
                 dateRange.classList.remove('show');
             } else {
@@ -950,6 +954,14 @@
                 document.querySelectorAll('.date-range.show').forEach(el => {
                     el.classList.remove('show');
                 });
+                
+                // Position the date picker relative to the button
+                if (calendarIcon) {
+                    const rect = calendarIcon.getBoundingClientRect();
+                    dateRange.style.left = (rect.left - 150) + 'px'; // Adjust horizontal position
+                    dateRange.style.top = (rect.bottom + 5) + 'px'; // Position below the button
+                }
+                
                 dateRange.classList.add('show');
             }
         }
