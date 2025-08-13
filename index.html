@@ -18,49 +18,64 @@
       background-color: #f8f9fa;
     }
 
+    /* MAIN CONTAINER - MATCHES OTHER PAGES */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+
+    /* CONSISTENT NAVBAR STYLING - MATCHES OTHER PAGES */
     .navbar {
-      background-color: #ffffff;
-      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+      border-bottom: 1px solid #e9ecef;
       padding: 0;
-      margin: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
       z-index: 1000;
     }
 
+    .navbar-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
     .navbar a {
-      color: #333;
-      padding: 16px 24px;
+      color: #495057;
+      padding: 20px 28px;
       text-decoration: none;
+      text-align: center;
+      display: block;
+      transition: all 0.2s ease;
       font-weight: 500;
-      transition: all 0.3s ease;
       border-bottom: 2px solid transparent;
     }
 
     .navbar a:hover {
-      color: #007bff;
+      color: #212529;
       border-bottom-color: #007bff;
+      background: #f8f9fa;
     }
 
     .navbar a.active {
       color: #007bff;
       border-bottom-color: #007bff;
+      background: #f8f9fa;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
+    .main-content {
+      padding: 60px 20px;
     }
 
     .hero {
-      background-color: #ffffff;
-      padding: 60px 0;
       text-align: center;
+      margin-bottom: 60px;
     }
 
     .hero h1 {
@@ -77,15 +92,10 @@
       margin: 0 auto;
     }
 
-    .features {
-      padding: 60px 0;
-    }
-
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 30px;
-      margin-top: 40px;
     }
 
     .feature-card {
@@ -129,21 +139,25 @@
     }
 
     .footer {
-      background-color: #ffffff;
-      border-top: 1px solid #e5e5e5;
-      padding: 40px 0;
+      background: #f8f9fa;
+      border-top: 1px solid #e9ecef;
       text-align: center;
+      padding: 25px;
+    }
+
+    .footer p {
       color: #6c757d;
+      font-size: 0.9rem;
     }
 
     @media (max-width: 768px) {
-      .navbar {
-        flex-wrap: wrap;
-      }
-      
       .navbar a {
-        padding: 12px 16px;
-        font-size: 0.9rem;
+        padding: 16px 20px;
+        font-size: 0.95rem;
+      }
+
+      .main-content {
+        padding: 40px 15px;
       }
 
       .hero h1 {
@@ -159,30 +173,50 @@
         gap: 20px;
       }
     }
+
+    @media (max-width: 480px) {
+      .navbar-content {
+        flex-direction: column;
+      }
+
+      .navbar a {
+        width: 100%;
+        border-bottom: none;
+        border-right: 2px solid transparent;
+      }
+
+      .navbar a:hover,
+      .navbar a.active {
+        border-right-color: #007bff;
+        border-bottom-color: transparent;
+      }
+
+      .hero h1 {
+        font-size: 1.8rem;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="container">
+    <nav class="navbar">
+      <div class="navbar-content">
+        <a href="index.html" class="active">Home</a>
+        <a href="Bus visualizer 2.0.html">Platforming</a>
+        <a href="GO Train maker.html">GO Train Chart</a>
+        <a href="Parkingtool.html">Parking Usage</a>
+        <a href="Parkingusertool.html">Parking Search</a>
+      </div>
+    </nav>
 
-  <div class="navbar">
-    <a href="index.html" class="active">Home</a>
-    <a href="Bus visualizer 2.0.html">Platforming</a>
-    <a href="GO Train maker.html">GO Train Chart</a>
-    <a href="Parkingtool.html">Parking Usage Tool</a>
-    <a href="Parkingusertool.html">Parking User Search</a>
-  </div>
+    <main class="main-content">
+      <section class="hero">
+        <h1><b>Phil's Transit Toolkit</b></h1>
+        <p>My collection of transit and parking tools I've built at the City of Barrie</p>
+      </section>
 
-  <section class="hero">
-    <div class="container">
-      <h1><b>Phil's Transit Toolkit</b></h1>
-      <p>My collection of transit and parking tools I've built at the City of Barrie</p>
-    </div>
-  </section>
-
-  <section class="features">
-    <div class="container">
-      <div class="features-grid">
-        
-         <a href="Bus visualizer 2.0.html" class="feature-card">
+      <section class="features-grid">
+        <a href="Bus visualizer 2.0.html" class="feature-card">
           <span class="feature-icon">🚌</span>
           <h3>Bus Platforming</h3>
           <p>Analyze platforming conflicts</p>
@@ -205,16 +239,12 @@
           <h3>Parking Search</h3>
           <p>Explore user analytics and yearly trends</p>
         </a>
+      </section>
+    </main>
 
-      </div>
-    </div>
-  </section>
-
-  <footer class="footer">
-    <div class="container">
+    <footer class="footer">
       <p>Phil's Transit Toolkit | Created by Philippe Tremblay with AI assistance</p>
-    </div>
-  </footer>
-
+    </footer>
+  </div>
 </body>
 </html>
