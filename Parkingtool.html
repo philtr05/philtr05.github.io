@@ -1733,12 +1733,13 @@
             chart.data.labels = processedData.map(d => d.time);
             chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
             chart.data.datasets[1].data = gaussianData;
-            chart.data.datasets.data = comparisonProcessedData.map(d => d.normalizedCount);
-            chart.data.datasets.data = comparisonGaussianData;
+        chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
+        chart.data.datasets.data = comparisonGaussianData;
 
-            chart.data.datasets.label = document.getElementById('estimateTrue').checked 
-                ? 'Primary - Average Cars Parked (x4)'
-                : 'Primary - Average Cars Parked';
+        chart.data.datasets.label = document.getElementById('estimateTrue').checked 
+        ? 'Primary - Average Cars Parked (x4)'
+        : 'Primary - Average Cars Parked';
+
 
             chart.data.datasets[2].label = document.getElementById('estimateTrue').checked 
                 ? 'Comparison - Average Cars Parked (x4)'
@@ -2183,4 +2184,5 @@
     </script>
 </body>
 </html>
+
 
