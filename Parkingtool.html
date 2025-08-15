@@ -881,7 +881,7 @@
                 if (progress >= 90) clearInterval(loadingInterval);
             }, 100);
 
-            fetch('./2023-2025 Parking.csv')
+            fetch('./2023-2025 Parking.csv?' + Date.now())
                 .then(response => {
                     clearInterval(loadingInterval);
                     document.getElementById('loadingBar').style.width = '100%';
@@ -2183,3 +2183,4 @@
     </script>
 </body>
 </html>
+
