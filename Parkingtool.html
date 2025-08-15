@@ -658,7 +658,7 @@
             <section class="upload-section" id="uploadSection">
                 <h3>Parking Data Upload</h3>
                 <p><em>Attempting to auto-load default dataset...</em></p>
-                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name</strong></p>
+                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name, Total</strong></p>
                 <div class="file-input-wrapper">
                     <input type="file" id="fileInput" accept=".csv" />
                 </div>
@@ -905,7 +905,7 @@
                             // Update upload section to show success
                             uploadSection.innerHTML = `
                                 <h3>Upload Different File (Optional)</h3>
-                                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name</strong></p>
+                                <p>Expected format: <strong>Date, Time, Length (hours), Hotspot #, Lot Name, Total</strong></p>
                                 <div class="file-input-wrapper">
                                     <input type="file" id="fileInput" accept=".csv" />
                                 </div>
@@ -1017,8 +1017,8 @@
         function setupDateRangeInputs() {
             if (rawCsvData.length === 0) return;
             const dates = rawCsvData.map(row => row.date).sort((a, b) => a - b);
-            const minDate = dates[0].toISOString().split('T')[0];
-            const maxDate = dates[dates.length - 1].toISOString().split('T')[0];
+            const minDate = dates[0].toISOString().split('T');
+            const maxDate = dates[dates.length - 1].toISOString().split('T');
 
             const selectDateElem = document.getElementById('selectDate');
             selectDateElem.min = minDate;
@@ -1177,7 +1177,7 @@
                 const cleanData = data.filter(row => {
                     const keys = Object.keys(row).map(k => k.toLowerCase().trim());
                     return keys.includes('date') && keys.includes('time') && keys.includes('length') && 
-                           keys.includes('hotspot #') && keys.includes('lot name');
+                           keys.includes('hotspot #') && keys.includes('lot name') && keys.includes('total');
                 }).map(row => {
                     const normalizedRow = {};
                     Object.keys(row).forEach(key => {
@@ -1188,7 +1188,7 @@
                 });
 
                 if (cleanData.length === 0) {
-                    showError('No valid data found. Please ensure CSV has columns: Date, Time, Length, Hotspot #, Lot Name');
+                    showError('No valid data found. Please ensure CSV has columns: Date, Time, Length, Hotspot #, Lot Name, Total');
                     return;
                 }
 
@@ -1253,6 +1253,18 @@
                             throw new Error(`Invalid hotspot #: ${row['hotspot #']}`);
                         }
 
+                        // Parse the total field
+                        let total = row.total;
+                        if (typeof total === 'string') {
+                            total = parseFloat(total.replace(/[$,]/g, ''));
+                        } else {
+                            total = parseFloat(total);
+                        }
+                        
+                        if (isNaN(total)) {
+                            total = 0; // Default to 0 if total is not a valid number
+                        }
+
                         return {
                             date: date,
                             hours: hours,
@@ -1261,7 +1273,8 @@
                             dayOfWeek: date.getDay(),
                             month: date.getMonth(),
                             hotspot: hotspot,
-                            lotName: hotspotToNameMap[hotspot] || 'Unknown'
+                            lotName: hotspotToNameMap[hotspot] || 'Unknown',
+                            total: total
                         };
                     } catch (error) {
                         console.warn(`Row ${index + 1}: ${error.message}`);
@@ -1720,10 +1733,10 @@
             chart.data.labels = processedData.map(d => d.time);
             chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
             chart.data.datasets[1].data = gaussianData;
-            chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
-            chart.data.datasets[3].data = comparisonGaussianData;
+            chart.data.datasets.data = comparisonProcessedData.map(d => d.normalizedCount);
+            chart.data.datasets.data = comparisonGaussianData;
 
-            chart.data.datasets[0].label = document.getElementById('estimateTrue').checked 
+            chart.data.datasets.label = document.getElementById('estimateTrue').checked 
                 ? 'Primary - Average Cars Parked (x4)'
                 : 'Primary - Average Cars Parked';
 
@@ -1733,12 +1746,28 @@
 
             const hasComparison = comparisonProcessedData.length > 0;
             chart.data.datasets[2].hidden = !hasComparison;
-            chart.data.datasets[3].hidden = !hasComparison;
+            chart.data.datasets.hidden = !hasComparison;
 
             document.getElementById('comparisonStatsColumn').style.display = hasComparison ? 'block' : 'none';
 
             chart.update('none');
             updateStats();
+        }
+
+        // Helper function to format duration
+        function formatDuration(hours) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return `${h}h${m.toString().padStart(2, '0')}m`;
+        }
+
+        // Helper function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(amount);
         }
 
         function updateStats() {
@@ -1797,6 +1826,13 @@
             const peakDataPoint = processedData.find(d => d.normalizedCount === maxCars);
             const peakTimeStr = peakDataPoint ? peakDataPoint.time : 'N/A';
 
+            // Calculate new statistics
+            const avgDuration = filteredData.length > 0 ? 
+                filteredData.reduce((sum, row) => sum + row.length, 0) / filteredData.length : 0;
+            const avgSpend = filteredData.length > 0 ? 
+                filteredData.reduce((sum, row) => sum + row.total, 0) / filteredData.length : 0;
+            const totalRevenue = filteredData.reduce((sum, row) => sum + row.total, 0);
+
             if (gaussianParams) {
                 const stdDevHours = (gaussianParams.stdDev / 60).toFixed(1);
                 const rSquared = calculateRSquared().toFixed(3);
@@ -1812,7 +1848,10 @@
                     Peak Occupancy Time: ${peakTimeStr}<br>
                     Max Cars: ${maxCars.toFixed(1)}<br>
                     <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${stdDevHours} hours<br>
-                    <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}
+                    <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${rSquared}<br>
+                    Average stay duration: ${formatDuration(avgDuration)}<br>
+                    Average spend: ${formatCurrency(avgSpend)}<br>
+                    Total revenue for period: ${formatCurrency(totalRevenue)}
                 `;
             } else {
                 primaryStatsDiv.innerHTML = `
@@ -1826,7 +1865,10 @@
                     Peak Occupancy Time: ${peakTimeStr}<br>
                     Max Cars: ${maxCars.toFixed(1)}<br>
                     <br>
-                    <strong>Insufficient data for Normal Distribution</strong>
+                    <strong>Insufficient data for Normal Distribution</strong><br>
+                    Average stay duration: ${formatDuration(avgDuration)}<br>
+                    Average spend: ${formatCurrency(avgSpend)}<br>
+                    Total revenue for period: ${formatCurrency(totalRevenue)}
                 `;
             }
 
@@ -1886,6 +1928,13 @@
                 const comparisonPeakDataPoint = comparisonProcessedData.find(d => d.normalizedCount === comparisonMaxCars);
                 const cPeakTimeStr = comparisonPeakDataPoint ? comparisonPeakDataPoint.time : 'N/A';
 
+                // Calculate comparison new statistics
+                const comparisonAvgDuration = comparisonFilteredData.length > 0 ? 
+                    comparisonFilteredData.reduce((sum, row) => sum + row.length, 0) / comparisonFilteredData.length : 0;
+                const comparisonAvgSpend = comparisonFilteredData.length > 0 ? 
+                    comparisonFilteredData.reduce((sum, row) => sum + row.total, 0) / comparisonFilteredData.length : 0;
+                const comparisonTotalRevenue = comparisonFilteredData.reduce((sum, row) => sum + row.total, 0);
+
                 if (comparisonGaussianParams) {
                     const cStdDevHours = (comparisonGaussianParams.stdDev / 60).toFixed(1);
                     const cRSquared = calculateComparisonRSquared().toFixed(3);
@@ -1901,7 +1950,10 @@
                         Peak Occupancy Time: ${cPeakTimeStr}<br>
                         Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         <a href="https://en.wikipedia.org/wiki/Standard_deviation">Standard Deviation:</a> ${cStdDevHours} hours<br>
-                        <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}
+                        <a href="https://en.wikipedia.org/wiki/Coefficient_of_determination">R² Fit:</a> ${cRSquared}<br>
+                        Average stay duration: ${formatDuration(comparisonAvgDuration)}<br>
+                        Average spend: ${formatCurrency(comparisonAvgSpend)}<br>
+                        Total revenue for period: ${formatCurrency(comparisonTotalRevenue)}
                     `;
                 } else {
                     comparisonHtml = `
@@ -1915,7 +1967,10 @@
                         Peak Occupancy Time: ${cPeakTimeStr}<br>
                         Max Cars: ${comparisonMaxCars.toFixed(1)}<br>
                         <br>
-                        <strong>Insufficient data for Normal Distribution</strong>
+                        <strong>Insufficient data for Normal Distribution</strong><br>
+                        Average stay duration: ${formatDuration(comparisonAvgDuration)}<br>
+                        Average spend: ${formatCurrency(comparisonAvgSpend)}<br>
+                        Total revenue for period: ${formatCurrency(comparisonTotalRevenue)}
                     `;
                 }
             }
