@@ -1693,67 +1693,69 @@
         }
 
         function updateChart() {
-            if (!chart) {
-                initChart();
+    if (!chart) {
+        initChart();
+    }
+
+    // Primary dataset
+    const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+    const xData = businessHoursData.map(d => d.minute);
+    const yData = businessHoursData.map(d => d.normalizedCount);
+    
+    gaussianParams = fitGaussian(xData, yData);
+
+    const gaussianData = processedData.map(d => {
+        if (gaussianParams) {
+            return gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev);
+        }
+        return null;
+    });
+
+    // Comparison dataset
+    let comparisonGaussianData = [];
+    if (comparisonProcessedData.length > 0) {
+        const comparisonBusinessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
+        const comparisonXData = comparisonBusinessHoursData.map(d => d.minute);
+        const comparisonYData = comparisonBusinessHoursData.map(d => d.normalizedCount);
+        
+        comparisonGaussianParams = fitGaussian(comparisonXData, comparisonYData);
+
+        comparisonGaussianData = processedData.map(d => {
+            if (comparisonGaussianParams) {
+                return gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev);
             }
+            return null;
+        });
+    } else {
+        comparisonGaussianParams = null;
+    }
 
-            // Primary dataset
-            const businessHoursData = processedData.filter(d => d.minute >= 540 && d.minute <= 1020);
-            const xData = businessHoursData.map(d => d.minute);
-            const yData = businessHoursData.map(d => d.normalizedCount);
-            
-            gaussianParams = fitGaussian(xData, yData);
+    // Update chart data - ALL INDICES MUST BE CORRECT
+    chart.data.labels = processedData.map(d => d.time);
+    chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
+    chart.data.datasets[1].data = gaussianData;
+    chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
+    chart.data.datasets[3].data = comparisonGaussianData;  // FIXED: was chart.data.datasets.data
 
-            const gaussianData = processedData.map(d => {
-                if (gaussianParams) {
-                    return gaussian(d.minute, gaussianParams.amplitude, gaussianParams.mean, gaussianParams.stdDev);
-                }
-                return null;
-            });
-
-            // Comparison dataset
-            let comparisonGaussianData = [];
-            if (comparisonProcessedData.length > 0) {
-                const comparisonBusinessHoursData = comparisonProcessedData.filter(d => d.minute >= 540 && d.minute <= 1020);
-                const comparisonXData = comparisonBusinessHoursData.map(d => d.minute);
-                const comparisonYData = comparisonBusinessHoursData.map(d => d.normalizedCount);
-                
-                comparisonGaussianParams = fitGaussian(comparisonXData, comparisonYData);
-
-                comparisonGaussianData = processedData.map(d => {
-                    if (comparisonGaussianParams) {
-                        return gaussian(d.minute, comparisonGaussianParams.amplitude, comparisonGaussianParams.mean, comparisonGaussianParams.stdDev);
-                    }
-                    return null;
-                });
-            } else {
-                comparisonGaussianParams = null;
-            }
-
-            chart.data.labels = processedData.map(d => d.time);
-            chart.data.datasets[0].data = processedData.map(d => d.normalizedCount);
-            chart.data.datasets[1].data = gaussianData;
-        chart.data.datasets[2].data = comparisonProcessedData.map(d => d.normalizedCount);
-        chart.data.datasets.data = comparisonGaussianData;
-
-        chart.data.datasets.label = document.getElementById('estimateTrue').checked 
+    // Update labels - FIXED INDICES
+    chart.data.datasets.label = document.getElementById('estimateTrue').checked 
         ? 'Primary - Average Cars Parked (x4)'
         : 'Primary - Average Cars Parked';
 
+    chart.data.datasets[2].label = document.getElementById('estimateTrue').checked 
+        ? 'Comparison - Average Cars Parked (x4)'
+        : 'Comparison - Average Cars Parked';
 
-            chart.data.datasets[2].label = document.getElementById('estimateTrue').checked 
-                ? 'Comparison - Average Cars Parked (x4)'
-                : 'Comparison - Average Cars Parked';
+    // Show/hide comparison datasets
+    const hasComparison = comparisonProcessedData.length > 0;
+    chart.data.datasets[2].hidden = !hasComparison;
+    chart.data.datasets[3].hidden = !hasComparison;  // FIXED: was chart.data.datasets.hidden
 
-            const hasComparison = comparisonProcessedData.length > 0;
-            chart.data.datasets[2].hidden = !hasComparison;
-            chart.data.datasets.hidden = !hasComparison;
+    document.getElementById('comparisonStatsColumn').style.display = hasComparison ? 'block' : 'none';
 
-            document.getElementById('comparisonStatsColumn').style.display = hasComparison ? 'block' : 'none';
-
-            chart.update('none');
-            updateStats();
-        }
+    chart.update('none');
+    updateStats();
+}
 
         // Helper function to format duration
         function formatDuration(hours) {
@@ -2184,5 +2186,4 @@
     </script>
 </body>
 </html>
-
 
